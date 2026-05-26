@@ -75,11 +75,27 @@
         <!-- AI Assistant Panel -->
         <div class="layout-ai-panel" role="complementary" aria-label="AI Assistant">
 
+            <!-- Tab bar -->
             <div class="ai-panel-header">
-                <span class="ai-panel-title">
-                    <i class="pi pi-sparkles" />
-                    AI Assistant
-                </span>
+                <div class="ai-panel-tabs" role="tablist">
+                    <button class="ai-tab-btn ai-tab-active"
+                            type="button"
+                            role="tab"
+                            aria-selected="true"
+                            data-tab="chat"
+                            onclick="PFTemplate.aiPanel.switchTab('chat')">
+                        <i class="pi pi-comments" />Chat
+                    </button>
+                    <button class="ai-tab-btn"
+                            type="button"
+                            role="tab"
+                            aria-selected="false"
+                            data-tab="activity"
+                            onclick="PFTemplate.aiPanel.switchTab('activity')">
+                        <i class="pi pi-list" />Activity
+                        <span class="ai-tab-badge" id="ai-activity-badge"></span>
+                    </button>
+                </div>
                 <button class="ai-panel-close"
                         type="button"
                         onclick="PFTemplate.toggleAiPanel()"
@@ -88,36 +104,57 @@
                 </button>
             </div>
 
-            <div class="ai-panel-messages" id="ai-panel-messages">
-                <div class="ai-panel-empty" id="ai-panel-empty">
-                    <i class="pi pi-sparkles ai-empty-icon" />
-                    <p class="ai-empty-title">How can I help?</p>
-                    <p class="ai-empty-subtitle">Ask me anything about your application.</p>
+            <!-- Chat tab pane -->
+            <div class="ai-tab-pane ai-tab-pane-active" id="ai-tab-chat" role="tabpanel">
+                <div class="ai-panel-messages" id="ai-panel-messages">
+                    <div class="ai-panel-empty" id="ai-panel-empty">
+                        <i class="pi pi-sparkles ai-empty-icon" />
+                        <p class="ai-empty-title">How can I help?</p>
+                        <p class="ai-empty-subtitle">Ask me anything about your application.</p>
+                    </div>
+                </div>
+                <div class="ai-panel-input-area">
+                    <div class="ai-panel-input-wrapper">
+                        <textarea id="ai-panel-input"
+                                  class="ai-panel-textarea"
+                                  placeholder="Ask AI Assistant…"
+                                  rows="1"
+                                  aria-label="Message AI Assistant"></textarea>
+                        <button class="ai-panel-voice"
+                                type="button"
+                                id="ai-panel-voice-btn"
+                                aria-label="Voice input">
+                            <i class="pi pi-microphone" />
+                        </button>
+                        <button class="ai-panel-send"
+                                type="button"
+                                id="ai-panel-send-btn"
+                                aria-label="Send message"
+                                onclick="PFTemplate.aiPanel.send()">
+                            <i class="pi pi-send" />
+                        </button>
+                    </div>
+                    <p class="ai-panel-hint">Enter to send · Shift+Enter for new line</p>
                 </div>
             </div>
 
-            <div class="ai-panel-input-area">
-                <div class="ai-panel-input-wrapper">
-                    <textarea id="ai-panel-input"
-                              class="ai-panel-textarea"
-                              placeholder="Ask AI Assistant…"
-                              rows="1"
-                              aria-label="Message AI Assistant"></textarea>
-                    <button class="ai-panel-voice"
+            <!-- Activity tab pane -->
+            <div class="ai-tab-pane" id="ai-tab-activity" role="tabpanel">
+                <div class="ai-activity-toolbar">
+                    <span class="ai-activity-agent-label" id="ai-activity-agent">—</span>
+                    <button class="ai-activity-clear-btn"
                             type="button"
-                            id="ai-panel-voice-btn"
-                            aria-label="Voice input">
-                        <i class="pi pi-microphone" />
-                    </button>
-                    <button class="ai-panel-send"
-                            type="button"
-                            id="ai-panel-send-btn"
-                            aria-label="Send message"
-                            onclick="PFTemplate.aiPanel.send()">
-                        <i class="pi pi-send" />
+                            onclick="PFTemplate.activityPanel.clear()">
+                        <i class="pi pi-trash" />Clear
                     </button>
                 </div>
-                <p class="ai-panel-hint">Enter to send · Shift+Enter for new line</p>
+                <div class="ai-activity-timeline" id="ai-activity-timeline">
+                    <div class="ai-activity-empty" id="ai-activity-empty">
+                        <i class="pi pi-list ai-empty-icon" />
+                        <p class="ai-empty-title">No activity yet</p>
+                        <p class="ai-empty-subtitle">Send a message to see live agent events.</p>
+                    </div>
+                </div>
             </div>
 
         </div>

@@ -159,6 +159,18 @@ const PFTemplate = (() => {
             this._initVoice();
         },
 
+        switchTab(tab) {
+            document.querySelectorAll('.ai-tab-btn').forEach(btn => {
+                const active = btn.dataset.tab === tab;
+                btn.classList.toggle('ai-tab-active', active);
+                btn.setAttribute('aria-selected', active ? 'true' : 'false');
+            });
+            document.querySelectorAll('.ai-tab-pane').forEach(pane => {
+                pane.classList.toggle('ai-tab-pane-active', pane.id === 'ai-tab-' + tab);
+            });
+            if (tab === 'activity') activityPanel.resetBadge();
+        },
+
         send() {
             if (this.isStreaming || !this.inputEl) return;
             const text = this.inputEl.value.trim();
@@ -170,6 +182,7 @@ const PFTemplate = (() => {
             this._hideEmpty();
             this._appendUser(text);
             this._stream(this._demoResponse(text));
+            this._demoAgentSimulation(text);
         },
 
         _appendUser(text) {
@@ -289,6 +302,36 @@ const PFTemplate = (() => {
             return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         },
 
+        _demoAgentSimulation(userText) {
+            const snippet = userText.length > 40 ? userText.substring(0, 40) + '…' : userText;
+            const isCode = userText.toLowerCase().includes('code') || userText.toLowerCase().includes('example');
+            const ts = () => new Date().toISOString();
+            const mkId = (n) => 'demo-' + Date.now() + '-' + n;
+
+            // [emitAt ms, event, resolveAfter ms (null = already final)]
+            const steps = [
+                [0,    { id: mkId(0), type: 'agent_started', status: 'running', title: 'Processing request',      agent: 'AssistantAgent', details: `"${snippet}"` }, 300],
+                [400,  { id: mkId(1), type: 'reasoning',     status: 'running', title: 'Analyzing query',         agent: 'AssistantAgent' }, 300],
+                [800,  { id: mkId(2), type: 'tool_call',     status: 'running', title: 'Searching knowledge base', agent: 'AssistantAgent', tool: 'database.search', details: 'Retrieving relevant context' }, 650],
+                [1500, { id: mkId(3), type: 'tool_result',   status: 'success', title: 'Found relevant context',  agent: 'AssistantAgent', tool: 'database.search', details: '3 results returned' }, null],
+                ...(isCode ? [
+                    [1900, { id: mkId(4), type: 'tool_call',   status: 'running', title: 'Fetching code snippet', agent: 'AssistantAgent', tool: 'code.fetch', details: 'Retrieving example' }, 600],
+                    [2550, { id: mkId(5), type: 'tool_result', status: 'success', title: 'Code snippet ready',    agent: 'AssistantAgent', tool: 'code.fetch' }, null]
+                ] : []),
+                [isCode ? 3000 : 1900, { id: mkId(6), type: 'reasoning',     status: 'running', title: 'Composing response', agent: 'AssistantAgent', details: 'Synthesizing results' }, 350],
+                [isCode ? 3400 : 2300, { id: mkId(7), type: 'agent_finished', status: 'success', title: 'Response ready',    agent: 'AssistantAgent' }, null]
+            ];
+
+            steps.forEach(([delay, evt, resolveMs]) => {
+                setTimeout(() => {
+                    AgentEventBus.emit({ ...evt, timestamp: ts() });
+                    if (resolveMs !== null) {
+                        setTimeout(() => activityPanel.updateEvent(evt.id, 'success'), resolveMs);
+                    }
+                }, delay);
+            });
+        },
+
         _demoResponse(input) {
             const q = input.toLowerCase();
             if (q.includes('theme') || q.includes('dark') || q.includes('light') || q.includes('dim')) {
@@ -307,6 +350,192 @@ const PFTemplate = (() => {
                 return '## Markdown rendering\n\nThis response demonstrates **bold**, *italic*, and `inline code`.\n\n### JavaScript example\n\n```javascript\nfunction greet(name) {\n    return `Hello, ${name}!`;\n}\n\nconsole.log(greet(\'World\'));\n```\n\n### Features\n\n- Markdown parsed via **marked.js**\n- Code blocks have a **Copy** button (hover to reveal)\n- Retry button appears after each response\n\n> Tip: voice input fills the textarea — press Enter to send.';
             }
             return 'This is a simulated streaming response. In a real deployment this panel connects to an LLM via the Anthropic Java SDK or another AI provider. The typewriter animation is implemented in vanilla JS — no framework required.';
+        }
+    };
+
+    // ─── Agent Event Bus ──────────────────────────────────
+
+    const AgentEventBus = {
+        _listeners: {},
+
+        on(type, fn) {
+            if (!this._listeners[type]) this._listeners[type] = [];
+            this._listeners[type].push(fn);
+        },
+
+        emit(event) {
+            const handlers = this._listeners[event.type] || [];
+            const wildcards = this._listeners['*'] || [];
+            [...handlers, ...wildcards].forEach(fn => fn(event));
+        },
+
+        clear() {
+            this._listeners = {};
+        }
+    };
+
+    // ─── Event Renderer Registry ──────────────────────────
+
+    const RendererRegistry = {
+        _renderers: {},
+
+        register(type, fn) {
+            this._renderers[type] = fn;
+        },
+
+        render(event) {
+            const fn = this._renderers[event.type] || this._renderers['_default'];
+            return fn ? fn(event) : { icon: 'pi-circle', color: 'var(--text-color-secondary)', label: event.title || event.type };
+        }
+    };
+
+    function _toolIcon(tool) {
+        if (!tool) return 'pi-cog';
+        const t = tool.toLowerCase();
+        if (t.includes('browser') || t.includes('web') || t.includes('http')) return 'pi-globe';
+        if (t.includes('database') || t.includes('db') || t.includes('sql')) return 'pi-database';
+        if (t.includes('file') || t.includes('doc') || t.includes('pdf')) return 'pi-file';
+        if (t.includes('email') || t.includes('mail')) return 'pi-envelope';
+        if (t.includes('terminal') || t.includes('shell') || t.includes('exec')) return 'pi-terminal';
+        if (t.includes('search') || t.includes('find')) return 'pi-search';
+        if (t.includes('code') || t.includes('function') || t.includes('script')) return 'pi-code';
+        if (t.includes('api') || t.includes('http') || t.includes('rest')) return 'pi-cloud';
+        return 'pi-cog';
+    }
+
+    // Register built-in renderers
+    RendererRegistry.register('agent_started',  () => ({ icon: 'pi-sparkles',            color: 'var(--primary-color)',          label: 'Agent started' }));
+    RendererRegistry.register('agent_finished', () => ({ icon: 'pi-check-circle',         color: '#22c55e',                       label: 'Agent finished' }));
+    RendererRegistry.register('tool_call',      (e) => ({ icon: _toolIcon(e.tool),         color: 'var(--text-color-secondary)',   label: e.title || e.tool || 'Tool call' }));
+    RendererRegistry.register('tool_result',    (e) => ({ icon: _toolIcon(e.tool),         color: '#22c55e',                       label: e.title || 'Result received' }));
+    RendererRegistry.register('reasoning',      () => ({ icon: 'pi-th-large',             color: 'var(--primary-color)',          label: 'Reasoning' }));
+    RendererRegistry.register('browser_action', () => ({ icon: 'pi-globe',                color: 'var(--text-color-secondary)',   label: 'Browser action' }));
+    RendererRegistry.register('file_operation', () => ({ icon: 'pi-file',                 color: 'var(--text-color-secondary)',   label: 'File operation' }));
+    RendererRegistry.register('workflow_step',  () => ({ icon: 'pi-sitemap',              color: 'var(--primary-color)',          label: 'Workflow step' }));
+    RendererRegistry.register('human_input_required', () => ({ icon: 'pi-user',           color: '#f59e0b',                       label: 'Input required' }));
+    RendererRegistry.register('warning',        (e) => ({ icon: 'pi-exclamation-triangle', color: '#f59e0b',                      label: e.title || 'Warning' }));
+    RendererRegistry.register('error',          (e) => ({ icon: 'pi-times-circle',         color: '#ef4444',                      label: e.title || 'Error' }));
+    RendererRegistry.register('_default',       (e) => ({ icon: 'pi-circle',               color: 'var(--text-color-secondary)',  label: e.title || e.type }));
+
+    // ─── Activity Panel ───────────────────────────────────
+
+    const activityPanel = {
+        timelineEl: null,
+        emptyEl: null,
+        agentLabelEl: null,
+        badgeEl: null,
+        _count: 0,
+        _badgeCount: 0,
+
+        init() {
+            this.timelineEl   = document.getElementById('ai-activity-timeline');
+            this.emptyEl      = document.getElementById('ai-activity-empty');
+            this.agentLabelEl = document.getElementById('ai-activity-agent');
+            this.badgeEl      = document.getElementById('ai-activity-badge');
+
+            AgentEventBus.on('*', (event) => this._onEvent(event));
+        },
+
+        _onEvent(event) {
+            if (this.emptyEl) this.emptyEl.style.display = 'none';
+
+            const isActivityTabActive = document.getElementById('ai-tab-activity')?.classList.contains('ai-tab-pane-active');
+            if (!isActivityTabActive) this._incrementBadge();
+
+            if (event.agent && this.agentLabelEl) this.agentLabelEl.textContent = event.agent;
+
+            const rendered = RendererRegistry.render(event);
+            const el = this._buildEl(event, rendered);
+
+            if (this.timelineEl) {
+                this.timelineEl.appendChild(el);
+                this.timelineEl.scrollTop = this.timelineEl.scrollHeight;
+            }
+        },
+
+        _buildEl(event, rendered) {
+            const time = new Date(event.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const el = document.createElement('div');
+            el.className = 'ai-event';
+            el.dataset.status = event.status || 'running';
+            el.dataset.id = event.id || '';
+            el.innerHTML = `<div class="ai-event-icon"><i class="pi ${rendered.icon}" style="color:${rendered.color}"></i></div><div class="ai-event-body"><div class="ai-event-title">${this._esc(rendered.label)}</div>${event.details ? `<div class="ai-event-detail">${this._esc(event.details)}</div>` : ''}</div><div class="ai-event-time">${time}</div>`;
+            return el;
+        },
+
+        updateEvent(id, status, titleOverride) {
+            const el = this.timelineEl?.querySelector(`[data-id="${id}"]`);
+            if (!el) return;
+            el.dataset.status = status;
+            if (titleOverride) {
+                const titleEl = el.querySelector('.ai-event-title');
+                if (titleEl) titleEl.textContent = titleOverride;
+            }
+        },
+
+        clear() {
+            if (!this.timelineEl) return;
+            Array.from(this.timelineEl.children).forEach(c => { if (c !== this.emptyEl) c.remove(); });
+            if (this.emptyEl) this.emptyEl.style.display = '';
+            if (this.agentLabelEl) this.agentLabelEl.textContent = '—';
+            this._badgeCount = 0;
+            this._updateBadge();
+        },
+
+        _incrementBadge() {
+            this._badgeCount++;
+            this._updateBadge();
+        },
+
+        _updateBadge() {
+            if (!this.badgeEl) return;
+            if (this._badgeCount > 0) {
+                this.badgeEl.textContent = this._badgeCount > 9 ? '9+' : this._badgeCount;
+                this.badgeEl.classList.add('ai-tab-badge-visible');
+            } else {
+                this.badgeEl.classList.remove('ai-tab-badge-visible');
+            }
+        },
+
+        resetBadge() {
+            this._badgeCount = 0;
+            this._updateBadge();
+        },
+
+        _esc(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+    };
+
+    // ─── Agent Transport (stubs for SSE / WebSocket) ──────
+
+    const AgentTransport = {
+        _source: null,
+        _socket: null,
+
+        connectSSE(url) {
+            if (this._source) this._source.close();
+            this._source = new EventSource(url);
+            this._source.onmessage = (e) => {
+                try { AgentEventBus.emit(JSON.parse(e.data)); } catch (_) {}
+            };
+            this._source.onerror = () => AgentEventBus.emit({ type: 'error', status: 'error', title: 'SSE connection lost', timestamp: new Date().toISOString() });
+        },
+
+        connectWebSocket(url) {
+            if (this._socket) this._socket.close();
+            this._socket = new WebSocket(url);
+            this._socket.onmessage = (e) => {
+                try { AgentEventBus.emit(JSON.parse(e.data)); } catch (_) {}
+            };
+            this._socket.onerror = () => AgentEventBus.emit({ type: 'error', status: 'error', title: 'WebSocket error', timestamp: new Date().toISOString() });
+        },
+
+        disconnect() {
+            this._source?.close();
+            this._socket?.close();
+            this._source = null;
+            this._socket = null;
         }
     };
 
@@ -448,6 +677,7 @@ const PFTemplate = (() => {
         restoreRtl();
         palette.init();
         aiPanel.init();
+        activityPanel.init();
 
         // Close topbar dropdowns when clicking outside
         document.addEventListener('click', (e) => {
@@ -464,5 +694,5 @@ const PFTemplate = (() => {
         });
     });
 
-    return { setTheme, cycleTheme, setMenuLayout, setMenuTheme, setInputStyle, setRtl, toggleMenu, toggleDropdown, closeAllDropdowns, toggleAiPanel, setAiStatus, openConfig, palette, aiPanel };
+    return { setTheme, cycleTheme, setMenuLayout, setMenuTheme, setInputStyle, setRtl, toggleMenu, toggleDropdown, closeAllDropdowns, toggleAiPanel, setAiStatus, openConfig, palette, aiPanel, activityPanel, AgentEventBus, RendererRegistry, AgentTransport };
 })();
