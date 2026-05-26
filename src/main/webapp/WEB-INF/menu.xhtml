@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:ui="jakarta.faces.facelets">
+
+    <nav class="layout-sidebar" aria-label="Main navigation">
+        <div class="sidebar-menu">
+
+            <!-- Group: Main -->
+            <div class="menu-group">
+                <span class="menu-group-label">Main</span>
+                <ul class="menu-list" role="list">
+                    <li>
+                        <a href="#{request.contextPath}/index.xhtml" class="menu-link">
+                            <i class="pi pi-home menu-icon" />
+                            <span class="menu-label">Dashboard</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Group: UI (Phase 6 — demo pages will extend this) -->
+            <div class="menu-group">
+                <span class="menu-group-label">Components</span>
+                <ul class="menu-list" role="list">
+                    <li>
+                        <a href="#" class="menu-link">
+                            <i class="pi pi-table menu-icon" />
+                            <span class="menu-label">Data Table</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="menu-link">
+                            <i class="pi pi-id-card menu-icon" />
+                            <span class="menu-label">Form</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Group: AI (Phase 4) -->
+            <div class="menu-group">
+                <span class="menu-group-label">AI</span>
+                <ul class="menu-list" role="list">
+                    <li>
+                        <a href="#" class="menu-link" onclick="PFTemplate.toggleAiPanel(); return false;">
+                            <i class="pi pi-sparkles menu-icon" />
+                            <span class="menu-label">AI Assistant</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+        </div>
+    </nav>
+
+</ui:composition>

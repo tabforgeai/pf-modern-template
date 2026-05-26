@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="http://primefaces.org/ui">
+
+    <header class="layout-topbar">
+
+        <button class="topbar-menubutton"
+                onclick="PFTemplate.toggleMenu()"
+                aria-label="Toggle navigation menu"
+                type="button">
+            <i class="pi pi-bars" />
+        </button>
+
+        <a href="#{request.contextPath}/index.xhtml" class="topbar-logo">
+            <span class="topbar-logo-text">PF Modern</span>
+        </a>
+
+        <div class="topbar-spacer" />
+
+        <ul class="topbar-actions" role="list">
+
+            <!-- Search — opens Command Palette -->
+            <li class="topbar-item">
+                <button class="topbar-icon-btn"
+                        onclick="PFTemplate.palette.open()"
+                        title="Search  (Ctrl+K)"
+                        aria-label="Open command palette"
+                        type="button">
+                    <i class="pi pi-search" />
+                </button>
+            </li>
+
+            <!-- Notifications -->
+            <li class="topbar-item" id="notif-item">
+                <button class="topbar-icon-btn"
+                        onclick="PFTemplate.toggleDropdown('notif-item')"
+                        title="Notifications"
+                        aria-label="Notifications"
+                        type="button">
+                    <span class="topbar-icon-wrap">
+                        <i class="pi pi-bell" />
+                        <h:panelGroup rendered="#{notifications.unreadCount gt 0}">
+                            <span class="topbar-badge">#{notifications.unreadCount}</span>
+                        </h:panelGroup>
+                    </span>
+                </button>
+
+                <div class="topbar-dropdown notif-dropdown">
+                    <div class="dropdown-header">
+                        <span>Notifications</span>
+                        <h:panelGroup rendered="#{notifications.unreadCount gt 0}">
+                            <span class="dropdown-badge">#{notifications.unreadCount} new</span>
+                        </h:panelGroup>
+                    </div>
+                    <ul class="notif-list">
+                        <ui:repeat value="#{notifications.items}" var="notif">
+                            <li class="notif-item #{notif.read ? 'notif-read' : ''}">
+                                <span class="notif-icon">
+                                    <i class="#{notif.icon}" />
+                                </span>
+                                <div class="notif-body">
+                                    <span class="notif-message">#{notif.message}</span>
+                                    <span class="notif-time">#{notif.time}</span>
+                                </div>
+                                <h:panelGroup rendered="#{!notif.read}">
+                                    <span class="notif-dot" aria-hidden="true" />
+                                </h:panelGroup>
+                            </li>
+                        </ui:repeat>
+                    </ul>
+                </div>
+            </li>
+
+            <!-- AI Assistant -->
+            <li class="topbar-item">
+                <button class="topbar-icon-btn"
+                        onclick="PFTemplate.toggleAiPanel()"
+                        title="AI Assistant"
+                        aria-label="Toggle AI panel"
+                        type="button">
+                    <span class="topbar-icon-wrap">
+                        <i class="pi pi-sparkles" />
+                        <span class="ai-status-dot" aria-hidden="true" />
+                    </span>
+                </button>
+            </li>
+
+            <!-- Settings -->
+            <li class="topbar-item">
+                <button class="topbar-icon-btn"
+                        onclick="PFTemplate.openConfig()"
+                        title="Settings"
+                        aria-label="Open settings"
+                        type="button">
+                    <i class="pi pi-cog" />
+                </button>
+            </li>
+
+            <!-- User profile -->
+            <li class="topbar-item" id="profile-item">
+                <button class="topbar-icon-btn"
+                        onclick="PFTemplate.toggleDropdown('profile-item')"
+                        title="Profile"
+                        aria-label="User profile"
+                        type="button">
+                    <i class="pi pi-user" />
+                </button>
+
+                <div class="topbar-dropdown profile-dropdown">
+                    <div class="profile-info">
+                        <div class="profile-avatar">
+                            <i class="pi pi-user" />
+                        </div>
+                        <div class="profile-details">
+                            <span class="profile-name">Guest User</span>
+                            <span class="profile-role">Administrator</span>
+                        </div>
+                    </div>
+
+                    <div class="dropdown-divider" />
+
+                    <ul class="profile-menu-list">
+                        <li>
+                            <a href="#" class="profile-menu-link">
+                                <i class="pi pi-id-card" />
+                                <span>My Profile</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="profile-menu-link">
+                                <i class="pi pi-cog" />
+                                <span>Preferences</span>
+                            </a>
+                        </li>
+                        <li class="dropdown-divider" />
+                        <li>
+                            <a href="#" class="profile-menu-link profile-logout">
+                                <i class="pi pi-sign-out" />
+                                <span>Sign Out</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+
+        </ul>
+
+    </header>
+
+</ui:composition>

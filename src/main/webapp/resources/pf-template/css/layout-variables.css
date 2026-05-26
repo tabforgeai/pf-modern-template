@@ -1,0 +1,139 @@
+/* =====================================================
+   PF Modern Template — CSS Custom Properties
+   Runtime theme switching — light / dark / dim
+   No page reload required, no SASS compiler needed
+   ===================================================== */
+
+/* ─── Light (default) ──────────────────────────────── */
+:root,
+[data-theme="light"] {
+    /* Surfaces */
+    --surface-ground:   #f8f9fa;
+    --surface-card:     #ffffff;
+    --surface-overlay:  #ffffff;
+    --surface-border:   #dee2e6;
+
+    /* Text */
+    --text-color:           #212529;
+    --text-color-secondary: #6c757d;
+    --text-color-muted:     #adb5bd;
+
+    /* Primary — indigo (usklađeno sa PrimeFaces Lara) */
+    --primary-color:      #6366f1;
+    --primary-color-text: #ffffff;
+    --primary-light:      color-mix(in srgb, #6366f1 12%, #ffffff);
+
+    /* Topbar */
+    --topbar-height:  64px;
+    --topbar-bg:      #ffffff;
+    --topbar-text:    #212529;
+    --topbar-border:  #dee2e6;
+
+    /* Sidebar */
+    --sidebar-width:       250px;
+    --sidebar-bg:          #1e2235;
+    --sidebar-text:        #c8c8c8;
+    --sidebar-hover-bg:    rgba(255, 255, 255, 0.07);
+    --sidebar-active-bg:   var(--primary-color);
+    --sidebar-active-text: #ffffff;
+
+    /* Content */
+    --content-bg: #f8f9fa;
+
+    /* Status bar */
+    --statusbar-height: 24px;
+    --statusbar-bg:     #6366f1;
+    --statusbar-text:   #ffffff;
+
+    /* Command palette */
+    --palette-overlay-bg: rgba(0, 0, 0, 0.45);
+    --palette-bg:         #ffffff;
+    --palette-border:     1px solid #dee2e6;
+    --palette-shadow:     0 20px 60px rgba(0, 0, 0, 0.25);
+    --palette-width:      min(640px, 90vw);
+    --palette-input-bg:   #f8f9fa;
+
+    /* AI elementi */
+    --ai-accent-color:      #6366f1;
+    --ai-panel-width:       360px;
+    --ai-panel-bg:          #ffffff;
+    --ai-message-user-bg:   #f1f5f9;
+    --ai-message-ai-bg:     color-mix(in srgb, #6366f1 8%, #ffffff);
+    --ai-status-idle:       #22c55e;
+    --ai-status-thinking:   #6366f1;
+    --ai-status-error:      #ef4444;
+}
+
+/* ─── Dark ─────────────────────────────────────────── */
+[data-theme="dark"] {
+    --surface-ground:   #20232a;
+    --surface-card:     #282c34;
+    --surface-overlay:  #2d3139;
+    --surface-border:   #383e47;
+
+    --text-color:           #e5e8ec;
+    --text-color-secondary: #8d97a5;
+    --text-color-muted:     #576270;
+
+    --primary-color:    #818cf8;
+    --primary-color-text: #ffffff;
+    --primary-light:    color-mix(in srgb, #818cf8 15%, #282c34);
+
+    --topbar-bg:      #1a1d23;
+    --topbar-text:    #e5e8ec;
+    --topbar-border:  #383e47;
+
+    --sidebar-bg:    #12141a;
+    --sidebar-text:  #a0a8b4;
+
+    --content-bg: #20232a;
+
+    --statusbar-bg:   #1a1d23;
+    --statusbar-text: #8d97a5;
+
+    --palette-overlay-bg: rgba(0, 0, 0, 0.65);
+    --palette-bg:         #282c34;
+    --palette-border:     1px solid #383e47;
+    --palette-input-bg:   #20232a;
+
+    --ai-panel-bg:          #282c34;
+    --ai-message-user-bg:   #2d3139;
+    --ai-message-ai-bg:     color-mix(in srgb, #818cf8 10%, #282c34);
+}
+
+/* ─── Dim ──────────────────────────────────────────── */
+[data-theme="dim"] {
+    --surface-ground:   #2a2d3a;
+    --surface-card:     #323544;
+    --surface-overlay:  #363a4a;
+    --surface-border:   #434760;
+
+    --text-color:           #cdd2db;
+    --text-color-secondary: #8890a0;
+    --text-color-muted:     #5a6070;
+
+    --primary-color:    #7c83f5;
+    --primary-color-text: #ffffff;
+    --primary-light:    color-mix(in srgb, #7c83f5 15%, #323544);
+
+    --topbar-bg:      #252835;
+    --topbar-text:    #cdd2db;
+    --topbar-border:  #434760;
+
+    --sidebar-bg:    #1e2030;
+    --sidebar-text:  #9098a8;
+
+    --content-bg: #2a2d3a;
+
+    --statusbar-bg:   #252835;
+    --statusbar-text: #8890a0;
+
+    --palette-overlay-bg: rgba(0, 0, 0, 0.55);
+    --palette-bg:         #323544;
+    --palette-border:     1px solid #434760;
+    --palette-input-bg:   #2a2d3a;
+
+    --ai-panel-bg:          #323544;
+    --ai-message-user-bg:   #363a4a;
+    --ai-message-ai-bg:     color-mix(in srgb, #7c83f5 10%, #323544);
+}

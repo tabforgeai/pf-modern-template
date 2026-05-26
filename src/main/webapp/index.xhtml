@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:ui="jakarta.faces.facelets">
+
+    <ui:composition template="/WEB-INF/template.xhtml">
+
+        <ui:define name="title">Dashboard — PF Modern Template</ui:define>
+
+        <ui:define name="statusbar-context">Dashboard</ui:define>
+
+        <!-- Page-level action buttons — appear in the header bar, right side -->
+        <ui:define name="page-actions">
+            <p:button value="Export" icon="pi pi-download" styleClass="p-button-outlined p-button-sm" />
+            <p:button value="New"    icon="pi pi-plus"     styleClass="p-button-sm" />
+        </ui:define>
+
+        <ui:define name="content">
+            <div style="max-width: 640px;">
+                <h2 style="margin: 0 0 0.5rem; color: var(--text-color);">Dashboard</h2>
+                <p style="color: var(--text-color-secondary); margin: 0 0 1.5rem;">
+                    Phase 1 + 2 smoke test. Theme switching, menu modes, breadcrumb, and page actions are working.
+                </p>
+            </div>
+        </ui:define>
+
+    </ui:composition>
+
+</html>

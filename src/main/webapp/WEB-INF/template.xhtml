@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:f="jakarta.faces.core"
+      xmlns:ui="jakarta.faces.facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:pt="jakarta.faces.passthrough"
+      data-theme="#{guestPreferences.theme}"
+      dir="#{guestPreferences.rtl ? 'rtl' : 'ltr'}">
+
+<h:head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><ui:insert name="title">PF Modern Template</ui:insert></title>
+
+    <!--
+        Inline critical script — restores saved theme from localStorage
+        before first paint to prevent flash of wrong theme.
+        Intentionally tiny and inline; no external dependencies.
+    -->
+    <script>
+        (function () {
+            var t = localStorage.getItem('pft-theme');
+            var valid = ['light', 'dark', 'dim'];
+            if (t &amp;&amp; valid.indexOf(t) !== -1) {
+                document.documentElement.dataset.theme = t;
+            }
+        }());
+    </script>
+
+    <!-- CSS in <head> — no Flash of Unstyled Content -->
+    <h:outputStylesheet name="css/layout-variables.css" library="pf-template" />
+    <h:outputStylesheet name="css/layout.css"          library="pf-template" />
+
+    <!-- JS with defer — does not block HTML parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer="defer"></script>
+    <h:outputScript name="js/layout.js" library="pf-template" pt:defer="true" />
+
+    <!-- Slot for page-specific head content (extra CSS, meta tags, etc.) -->
+    <ui:insert name="head-extra" />
+</h:head>
+
+<h:body styleClass="layout-body #{guestPreferences.inputStyle eq 'filled' ? 'ui-input-filled' : ''}">
+
+    <div class="layout-wrapper
+                #{guestPreferences.menuLayoutClass}
+                #{guestPreferences.menuActive   ? 'layout-menu-active'  : ''}
+                #{guestPreferences.aiPanelOpen  ? 'ai-panel-open'       : ''}
+                #{guestPreferences.menuTheme eq 'light' ? 'layout-menu-light' : ''}">
+
+        <!-- Forces PrimeFaces to load all its resources (primeicons, primeflex, etc.) -->
+        <p:growl id="growl" />
+
+        <ui:include src="/WEB-INF/topbar.xhtml" />
+
+        <ui:include src="/WEB-INF/menu.xhtml" />
+
+        <div class="layout-main-container">
+
+            <!-- Page header bar (breadcrumb + page-actions) — disabled for now, restore if needed
+            <ui:include src="/WEB-INF/breadcrumb.xhtml" />
+            -->
+
+            <div class="layout-main">
+                <ui:insert name="content">
+                    <!-- Page content is inserted here -->
+                </ui:insert>
+            </div>
+
+            <ui:include src="/WEB-INF/footer.xhtml" />
+
+        </div>
+
+        <!-- AI Assistant Panel -->
+        <div class="layout-ai-panel" role="complementary" aria-label="AI Assistant">
+
+            <div class="ai-panel-header">
+                <span class="ai-panel-title">
+                    <i class="pi pi-sparkles" />
+                    AI Assistant
+                </span>
+                <button class="ai-panel-close"
+                        type="button"
+                        onclick="PFTemplate.toggleAiPanel()"
+                        aria-label="Close AI panel">
+                    <i class="pi pi-times" />
+                </button>
+            </div>
+
+            <div class="ai-panel-messages" id="ai-panel-messages">
+                <div class="ai-panel-empty" id="ai-panel-empty">
+                    <i class="pi pi-sparkles ai-empty-icon" />
+                    <p class="ai-empty-title">How can I help?</p>
+                    <p class="ai-empty-subtitle">Ask me anything about your application.</p>
+                </div>
+            </div>
+
+            <div class="ai-panel-input-area">
+                <div class="ai-panel-input-wrapper">
+                    <textarea id="ai-panel-input"
+                              class="ai-panel-textarea"
+                              placeholder="Ask AI Assistant…"
+                              rows="1"
+                              aria-label="Message AI Assistant"></textarea>
+                    <button class="ai-panel-voice"
+                            type="button"
+                            id="ai-panel-voice-btn"
+                            aria-label="Voice input">
+                        <i class="pi pi-microphone" />
+                    </button>
+                    <button class="ai-panel-send"
+                            type="button"
+                            id="ai-panel-send-btn"
+                            aria-label="Send message"
+                            onclick="PFTemplate.aiPanel.send()">
+                        <i class="pi pi-send" />
+                    </button>
+                </div>
+                <p class="ai-panel-hint">Enter to send · Shift+Enter for new line</p>
+            </div>
+
+        </div>
+
+        <ui:include src="/WEB-INF/config.xhtml" />
+
+        <!-- Command Palette — Ctrl+K -->
+        <div id="command-palette"
+             class="command-palette-overlay"
+             role="dialog"
+             aria-label="Command Palette"
+             aria-hidden="true">
+            <div class="command-palette-wrapper">
+                <div class="command-palette-search">
+                    <i class="pi pi-search command-palette-icon" />
+                    <input id="palette-input"
+                           type="text"
+                           class="command-palette-input"
+                           placeholder="Search pages and actions…"
+                           autocomplete="off"
+                           spellcheck="false" />
+                    <kbd class="palette-esc-hint">ESC</kbd>
+                </div>
+                <ul id="palette-results"
+                    class="command-palette-results"
+                    role="listbox"
+                    aria-label="Results">
+                </ul>
+            </div>
+        </div>
+
+        <!-- Status bar — fixed at bottom, à la VS Code -->
+        <div class="layout-statusbar" role="status" aria-live="polite">
+            <div class="statusbar-left">
+                <span class="statusbar-item">
+                    <i class="pi pi-map-marker" />
+                    <ui:insert name="statusbar-context">Home</ui:insert>
+                </span>
+            </div>
+            <div class="statusbar-center">
+                <span class="statusbar-item ai-statusbar-item">
+                    <i class="pi pi-sparkles" />
+                    <span id="ai-statusbar-text">AI ready</span>
+                </span>
+            </div>
+            <div class="statusbar-right">
+                <span class="statusbar-item statusbar-hint">Ctrl+K — commands</span>
+                <span class="statusbar-separator">|</span>
+                <span class="statusbar-item">
+                    <i class="pi pi-user" />
+                    Guest
+                </span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Slot for page-specific scripts -->
+    <ui:insert name="scripts" />
+
+</h:body>
+</html>

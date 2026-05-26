@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="http://primefaces.org/ui">
+
+    <div class="layout-page-header">
+
+        <div class="page-header-left">
+            <ui:insert name="breadcrumb">
+                <p:breadCrumb model="#{breadcrumb.model}" />
+            </ui:insert>
+        </div>
+
+        <div class="page-header-right">
+            <ui:insert name="page-actions" />
+        </div>
+
+    </div>
+
+</ui:composition>

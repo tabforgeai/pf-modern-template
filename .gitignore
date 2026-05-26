@@ -1,0 +1,31 @@
+# Maven
+target/
+*.class
+*.war
+*.ear
+*.jar
+
+# Eclipse
+.settings/
+.classpath
+.project
+.factorypath
+
+# IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Project planning (local only)
+PrimeFaces_template_plan.md
+
+# Claude Code memory
+.claude/

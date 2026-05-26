@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="http://primefaces.org/ui">
+    
+    <div id="config-panel"
+         class="layout-config"
+         role="dialog"
+         aria-label="Settings"
+         aria-hidden="true">
+
+        <div class="layout-config-content">
+
+            <h:form id="config-form" styleClass="layout-config-form">
+                <div class="layout-config-header">
+                    <h5>Theme Settings</h5>
+                    <button class="config-close-btn"
+                            onclick="document.getElementById('config-panel').setAttribute('aria-hidden','true')"
+                            aria-label="Close settings"
+                            type="button">
+                        <i class="pi pi-times" />
+                    </button>
+                </div>
+
+                <!-- Layout Mode: light / dark / dim -->
+                <div class="layout-config-section">
+                    <span class="section-name">Layout Mode</span>
+                    <p:selectOneRadio layout="responsive"
+                                      columns="3"
+                                      value="#{guestPreferences.theme}"
+                                      onchange="PFTemplate.setTheme(this.value)">
+                        <f:selectItem itemLabel="Light" itemValue="light" />
+                        <f:selectItem itemLabel="Dark"  itemValue="dark"  />
+                        <f:selectItem itemLabel="Dim"   itemValue="dim"   />
+                        <p:ajax update="config-form" />
+                    </p:selectOneRadio>
+                </div>
+
+                <!-- Menu Mode: static / overlay / slim / horizontal -->
+                <div class="layout-config-section">
+                    <span class="section-name">Menu Mode</span>
+                    <p:selectOneRadio layout="responsive"
+                                      columns="2"
+                                      value="#{guestPreferences.menuLayout}"
+                                      onchange="PFTemplate.setMenuLayout(this.value)">
+                        <f:selectItem itemLabel="Static"     itemValue="static"     />
+                        <f:selectItem itemLabel="Overlay"    itemValue="overlay"    />
+                        <f:selectItem itemLabel="Slim"       itemValue="slim"       />
+                        <f:selectItem itemLabel="Horizontal" itemValue="horizontal" />
+                        <p:ajax update="config-form" />
+                    </p:selectOneRadio>
+                </div>
+
+                <!-- Menu Theme: dark / light -->
+                <div class="layout-config-section">
+                    <span class="section-name">Menu Theme</span>
+                    <p:selectOneRadio layout="responsive"
+                                      columns="2"
+                                      value="#{guestPreferences.menuTheme}"
+                                      onchange="PFTemplate.setMenuTheme(this.value)">
+                        <f:selectItem itemLabel="Dark"  itemValue="dark"  />
+                        <f:selectItem itemLabel="Light" itemValue="light" />
+                        <p:ajax update="config-form" />
+                    </p:selectOneRadio>
+                </div>
+
+                <!-- Form Type: outlined / filled -->
+                <div class="layout-config-section">
+                    <span class="section-name">Form Type</span>
+                    <p:selectOneRadio layout="responsive"
+                                      columns="2"
+                                      value="#{guestPreferences.inputStyle}"
+                                      onchange="PFTemplate.setInputStyle(this.value)">
+                        <f:selectItem itemLabel="Outlined" itemValue="outlined" />
+                        <f:selectItem itemLabel="Filled"   itemValue="filled"   />
+                        <p:ajax update="config-form" />
+                    </p:selectOneRadio>
+                </div>
+
+                <!-- RTL Mode -->
+                <div class="layout-config-section layout-config-section-switch">
+                    <span class="section-name">RTL Mode</span>
+                    <p:toggleSwitch value="#{guestPreferences.rtl}"
+                                   onchange="PFTemplate.setRtl(this.checked)">
+                        <p:ajax update="config-form" />
+                    </p:toggleSwitch>
+                </div>
+
+            </h:form>
+        </div>
+    </div>
+
+</ui:composition>
