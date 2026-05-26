@@ -1082,6 +1082,29 @@
         letter-spacing: 0.06em;
     }
 
+    .ai-activity-toolbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .ai-activity-action-btn {
+        background: none;
+        border: 1px solid var(--surface-border);
+        border-radius: 5px;
+        color: var(--text-color-secondary);
+        width: 26px;
+        height: 26px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 0.72rem;
+        transition: border-color 0.15s, color 0.15s;
+
+        &:hover { border-color: var(--primary-color); color: var(--primary-color); }
+    }
+
     .ai-activity-clear-btn {
         background: none;
         border: 1px solid var(--surface-border);
@@ -1227,6 +1250,233 @@
         flex-shrink: 0;
         padding-top: 5px;
         white-space: nowrap;
+    }
+
+    /* Collapsible event details */
+    .ai-event-title-row {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .ai-event-title {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .ai-event-expand-btn {
+        background: none;
+        border: none;
+        padding: 0 2px;
+        cursor: pointer;
+        color: var(--text-color-secondary);
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+        opacity: 0.5;
+        transition: opacity 0.15s;
+
+        & .pi {
+            font-size: 0.6rem;
+            transition: transform 0.2s ease;
+        }
+
+        &:hover { opacity: 1; }
+        &.ai-event-expand-open .pi { transform: rotate(90deg); }
+    }
+
+    .ai-event-expanded {
+        overflow: hidden;
+        max-height: 0;
+        opacity: 0;
+        transition: max-height 0.25s ease, opacity 0.2s ease, margin-top 0.2s;
+        margin-top: 0;
+
+        &[aria-hidden="false"] {
+            max-height: 200px;
+            opacity: 1;
+            margin-top: 0.4rem;
+        }
+    }
+
+    .ai-event-expanded-inner {
+        background: var(--surface-ground);
+        border-radius: 6px;
+        padding: 0.4rem 0.6rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+    }
+
+    .ai-event-meta-row {
+        display: flex;
+        gap: 0.5rem;
+        font-size: 0.7rem;
+        line-height: 1.4;
+        color: var(--text-color);
+    }
+
+    .ai-event-meta-key {
+        color: var(--text-color-secondary);
+        flex-shrink: 0;
+        min-width: 48px;
+        font-weight: 500;
+    }
+
+    /* ─── Agent Task Graph overlay ────────────────────── */
+
+    .agent-graph-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 2500;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+
+        &.graph-open {
+            opacity: 1;
+            pointer-events: all;
+        }
+    }
+
+    .agent-graph-wrapper {
+        background: var(--surface-card);
+        border: 1px solid var(--surface-border);
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        width: 480px;
+        max-width: calc(100vw - 2rem);
+        max-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        transform: translateY(-12px) scale(0.98);
+        transition: transform 0.2s ease;
+
+        .graph-open & { transform: translateY(0) scale(1); }
+    }
+
+    .agent-graph-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.875rem 1.25rem;
+        border-bottom: 1px solid var(--surface-border);
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-color);
+        flex-shrink: 0;
+
+        & .pi { color: var(--primary-color); margin-right: 0.1rem; }
+    }
+
+    .agent-graph-close {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--text-color-secondary);
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.15s;
+
+        &:hover { background: color-mix(in srgb, var(--text-color-secondary) 12%, transparent); }
+    }
+
+    .agent-graph-content {
+        overflow-y: auto;
+        padding: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0;
+    }
+
+    .graph-node {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.65rem 0.875rem;
+        border: 1.5px solid var(--surface-border);
+        border-radius: 10px;
+        background: var(--surface-ground);
+        width: 100%;
+        animation: ai-msg-in 0.2s ease;
+
+        &.graph-node-success { border-color: color-mix(in srgb, #22c55e 50%, transparent); }
+        &.graph-node-error   { border-color: color-mix(in srgb, #ef4444 50%, transparent); }
+        &.graph-node-warning { border-color: color-mix(in srgb, #f59e0b 50%, transparent); }
+        &.graph-node-running { border-color: color-mix(in srgb, var(--primary-color) 50%, transparent); }
+    }
+
+    .graph-node-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: var(--surface-card);
+        border: 1px solid var(--surface-border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        flex-shrink: 0;
+    }
+
+    .graph-node-body {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .graph-node-title {
+        font-size: 0.82rem;
+        font-weight: 500;
+        color: var(--text-color);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .graph-node-detail {
+        font-size: 0.72rem;
+        color: var(--text-color-secondary);
+        margin-top: 0.1rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .graph-node-badge {
+        font-size: 0.68rem;
+        font-weight: 600;
+        padding: 0.15rem 0.45rem;
+        border-radius: 4px;
+        flex-shrink: 0;
+
+        &.badge-success { background: color-mix(in srgb, #22c55e 15%, transparent); color: #22c55e; }
+        &.badge-error   { background: color-mix(in srgb, #ef4444 15%, transparent); color: #ef4444; }
+        &.badge-warning { background: color-mix(in srgb, #f59e0b 15%, transparent); color: #f59e0b; }
+        &.badge-running { background: var(--primary-light); color: var(--primary-color); }
+        &.badge-queued  { background: var(--surface-border); color: var(--text-color-secondary); }
+    }
+
+    .graph-connector {
+        width: 1px;
+        height: 16px;
+        background: var(--surface-border);
+        margin: 0 auto;
+    }
+
+    .agent-graph-empty {
+        color: var(--text-color-secondary);
+        font-size: 0.875rem;
+        text-align: center;
+        padding: 2rem;
     }
 
     /* ─── AI status indicator ─────────────────────────── */

@@ -142,11 +142,25 @@
             <div class="ai-tab-pane" id="ai-tab-activity" role="tabpanel">
                 <div class="ai-activity-toolbar">
                     <span class="ai-activity-agent-label" id="ai-activity-agent">—</span>
-                    <button class="ai-activity-clear-btn"
-                            type="button"
-                            onclick="PFTemplate.activityPanel.clear()">
-                        <i class="pi pi-trash" />Clear
-                    </button>
+                    <div class="ai-activity-toolbar-actions">
+                        <button class="ai-activity-action-btn"
+                                type="button"
+                                title="Replay"
+                                onclick="PFTemplate.activityPanel.replay()">
+                            <i class="pi pi-refresh" />
+                        </button>
+                        <button class="ai-activity-action-btn"
+                                type="button"
+                                title="Task Graph"
+                                onclick="PFTemplate.activityPanel.showGraph()">
+                            <i class="pi pi-sitemap" />
+                        </button>
+                        <button class="ai-activity-clear-btn"
+                                type="button"
+                                onclick="PFTemplate.activityPanel.clear()">
+                            <i class="pi pi-trash" />Clear
+                        </button>
+                    </div>
                 </div>
                 <div class="ai-activity-timeline" id="ai-activity-timeline">
                     <div class="ai-activity-empty" id="ai-activity-empty">
@@ -157,6 +171,26 @@
                 </div>
             </div>
 
+        </div>
+
+        <!-- Agent Task Graph Overlay -->
+        <div id="agent-graph-overlay"
+             class="agent-graph-overlay"
+             role="dialog"
+             aria-label="Agent Task Graph"
+             aria-hidden="true">
+            <div class="agent-graph-wrapper">
+                <div class="agent-graph-header">
+                    <span><i class="pi pi-sitemap" />&#160;Task Graph</span>
+                    <button class="agent-graph-close"
+                            type="button"
+                            onclick="PFTemplate.activityPanel.closeGraph()"
+                            aria-label="Close">
+                        <i class="pi pi-times" />
+                    </button>
+                </div>
+                <div class="agent-graph-content" id="agent-graph-content"></div>
+            </div>
         </div>
 
         <ui:include src="/WEB-INF/config.xhtml" />

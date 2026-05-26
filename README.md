@@ -152,6 +152,110 @@ PFTemplate.palette.open()
 }
 ```
 
+## AI Agent Activity Panel
+
+The Activity tab is a **generic, event-driven observability layer**. The template knows nothing about AI logic — it only receives, renders, and groups events. Any backend (LangChain, custom Java agent, workflow engine, RAG pipeline) connects by emitting JSON events.
+
+### Event model
+
+```json
+{
+  "id":        "evt-abc123",
+  "timestamp": "2026-05-26T10:15:00.000Z",
+  "type":      "tool_call",
+  "status":    "running",
+  "title":     "Searching CRM",
+  "details":   "Finding customer by email",
+  "agent":     "SalesAgent",
+  "tool":      "crm.search"
+}
+```
+
+**Built-in event types:** `agent_started`, `agent_finished`, `tool_call`, `tool_result`, `reasoning`, `browser_action`, `file_operation`, `workflow_step`, `human_input_required`, `warning`, `error`
+
+**Status values:** `running`, `success`, `error`, `warning`, `waiting`, `queued`, `cancelled`
+
+### Connecting a real backend
+
+**Option A — Server-Sent Events (Jakarta / Java)**
+
+```java
+// Jakarta EE SSE endpoint
+@Path("/agent/events")
+public class AgentEventResource {
+    @GET
+    @Produces(MediaType.SERVER_SENT_EVENTS)
+    public void stream(@Context SseEventSink sink, @Context Sse sse) {
+        // emit events as agent runs
+        sink.send(sse.newEvent(Json.createObjectBuilder()
+            .add("id",        UUID.randomUUID().toString())
+            .add("timestamp", Instant.now().toString())
+            .add("type",      "tool_call")
+            .add("status",    "running")
+            .add("title",     "Searching database")
+            .add("agent",     "MyAgent")
+            .build().toString()));
+    }
+}
+```
+
+```javascript
+// In your page script — connects and auto-reconnects
+PFTemplate.AgentTransport.connectSSE('/api/agent/events');
+
+// Disable demo simulation when using real backend
+PFTemplate.DemoAgent.enabled = false;
+```
+
+**Option B — WebSocket**
+
+```javascript
+PFTemplate.AgentTransport.connectWebSocket('wss://yourserver/agent/ws');
+PFTemplate.DemoAgent.enabled = false;
+```
+
+**Option C — Emit directly from JavaScript**
+
+```javascript
+PFTemplate.AgentEventBus.emit({
+    id:        'evt-' + Date.now(),
+    timestamp: new Date().toISOString(),
+    type:      'tool_call',
+    status:    'running',
+    title:     'Calling external API',
+    agent:     'MyAgent',
+    tool:      'http.get'
+});
+```
+
+### Plugin API
+
+Register custom event types — icons, colors, labels:
+
+```javascript
+PFTemplate.registerPlugin({
+    id:    'crm-plugin',
+    label: 'CRM Plugin',
+    renderers: {
+        'crm.lookup': (e) => ({ icon: 'pi-users',   color: '#6366f1', label: e.title || 'CRM Lookup'  }),
+        'crm.update': (e) => ({ icon: 'pi-pencil',  color: '#6366f1', label: e.title || 'CRM Update'  }),
+        'email.send': (e) => ({ icon: 'pi-envelope', color: '#0ea5e9', label: e.title || 'Send Email'  }),
+    }
+});
+```
+
+### Panel configuration
+
+```javascript
+PFTemplate.activityPanel.configure({
+    agentName:     'ETL Pipeline',       // agent label shown in toolbar
+    tabLabel:      'Pipeline',           // renames "Activity" tab
+    autoSwitchTab: true,                 // auto-open Activity tab on first event
+    emptyTitle:    'No pipeline runs',
+    emptySubtitle: 'Trigger a run to see events here.'
+});
+```
+
 ## Roadmap
 
 - [x] Phase 1 — Layout structure (topbar, sidebar, main, footer, status bar)

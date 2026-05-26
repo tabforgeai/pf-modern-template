@@ -182,7 +182,7 @@ const PFTemplate = (() => {
             this._hideEmpty();
             this._appendUser(text);
             this._stream(this._demoResponse(text));
-            this._demoAgentSimulation(text);
+            DemoAgent.simulate(text);
         },
 
         _appendUser(text) {
@@ -302,36 +302,6 @@ const PFTemplate = (() => {
             return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         },
 
-        _demoAgentSimulation(userText) {
-            const snippet = userText.length > 40 ? userText.substring(0, 40) + '…' : userText;
-            const isCode = userText.toLowerCase().includes('code') || userText.toLowerCase().includes('example');
-            const ts = () => new Date().toISOString();
-            const mkId = (n) => 'demo-' + Date.now() + '-' + n;
-
-            // [emitAt ms, event, resolveAfter ms (null = already final)]
-            const steps = [
-                [0,    { id: mkId(0), type: 'agent_started', status: 'running', title: 'Processing request',      agent: 'AssistantAgent', details: `"${snippet}"` }, 300],
-                [400,  { id: mkId(1), type: 'reasoning',     status: 'running', title: 'Analyzing query',         agent: 'AssistantAgent' }, 300],
-                [800,  { id: mkId(2), type: 'tool_call',     status: 'running', title: 'Searching knowledge base', agent: 'AssistantAgent', tool: 'database.search', details: 'Retrieving relevant context' }, 650],
-                [1500, { id: mkId(3), type: 'tool_result',   status: 'success', title: 'Found relevant context',  agent: 'AssistantAgent', tool: 'database.search', details: '3 results returned' }, null],
-                ...(isCode ? [
-                    [1900, { id: mkId(4), type: 'tool_call',   status: 'running', title: 'Fetching code snippet', agent: 'AssistantAgent', tool: 'code.fetch', details: 'Retrieving example' }, 600],
-                    [2550, { id: mkId(5), type: 'tool_result', status: 'success', title: 'Code snippet ready',    agent: 'AssistantAgent', tool: 'code.fetch' }, null]
-                ] : []),
-                [isCode ? 3000 : 1900, { id: mkId(6), type: 'reasoning',     status: 'running', title: 'Composing response', agent: 'AssistantAgent', details: 'Synthesizing results' }, 350],
-                [isCode ? 3400 : 2300, { id: mkId(7), type: 'agent_finished', status: 'success', title: 'Response ready',    agent: 'AssistantAgent' }, null]
-            ];
-
-            steps.forEach(([delay, evt, resolveMs]) => {
-                setTimeout(() => {
-                    AgentEventBus.emit({ ...evt, timestamp: ts() });
-                    if (resolveMs !== null) {
-                        setTimeout(() => activityPanel.updateEvent(evt.id, 'success'), resolveMs);
-                    }
-                }, delay);
-            });
-        },
-
         _demoResponse(input) {
             const q = input.toLowerCase();
             if (q.includes('theme') || q.includes('dark') || q.includes('light') || q.includes('dim')) {
@@ -424,8 +394,10 @@ const PFTemplate = (() => {
         emptyEl: null,
         agentLabelEl: null,
         badgeEl: null,
-        _count: 0,
         _badgeCount: 0,
+        _history: [],
+        _replayActive: false,
+        _autoSwitchTab: false,
 
         init() {
             this.timelineEl   = document.getElementById('ai-activity-timeline');
@@ -437,10 +409,36 @@ const PFTemplate = (() => {
         },
 
         _onEvent(event) {
+            this._history.push({ event, ts: performance.now() });
+            this._addEventRow(event);
+        },
+
+        configure(opts = {}) {
+            if (opts.agentName     != null && this.agentLabelEl) this.agentLabelEl.textContent = opts.agentName;
+            if (opts.autoSwitchTab != null) this._autoSwitchTab = opts.autoSwitchTab;
+            if (opts.tabLabel) {
+                const btn = document.querySelector('.ai-tab-btn[data-tab="activity"]');
+                if (btn) {
+                    Array.from(btn.childNodes).filter(n => n.nodeType === 3).forEach(n => n.remove());
+                    const badge = btn.querySelector('.ai-tab-badge');
+                    btn.insertBefore(document.createTextNode(opts.tabLabel), badge);
+                }
+            }
+            if (opts.emptyTitle    && this.emptyEl) { const el = this.emptyEl.querySelector('.ai-empty-title');    if (el) el.textContent = opts.emptyTitle; }
+            if (opts.emptySubtitle && this.emptyEl) { const el = this.emptyEl.querySelector('.ai-empty-subtitle'); if (el) el.textContent = opts.emptySubtitle; }
+            return this;
+        },
+
+        _addEventRow(event, skipBadge) {
             if (this.emptyEl) this.emptyEl.style.display = 'none';
 
             const isActivityTabActive = document.getElementById('ai-tab-activity')?.classList.contains('ai-tab-pane-active');
-            if (!isActivityTabActive) this._incrementBadge();
+            if (!isActivityTabActive && !skipBadge) this._incrementBadge();
+
+            if (this._autoSwitchTab && !isActivityTabActive) {
+                document.querySelector('.layout-wrapper')?.classList.add('ai-panel-open');
+                aiPanel.switchTab('activity');
+            }
 
             if (event.agent && this.agentLabelEl) this.agentLabelEl.textContent = event.agent;
 
@@ -459,7 +457,26 @@ const PFTemplate = (() => {
             el.className = 'ai-event';
             el.dataset.status = event.status || 'running';
             el.dataset.id = event.id || '';
-            el.innerHTML = `<div class="ai-event-icon"><i class="pi ${rendered.icon}" style="color:${rendered.color}"></i></div><div class="ai-event-body"><div class="ai-event-title">${this._esc(rendered.label)}</div>${event.details ? `<div class="ai-event-detail">${this._esc(event.details)}</div>` : ''}</div><div class="ai-event-time">${time}</div>`;
+
+            const metaRows = [
+                event.details && `<div class="ai-event-meta-row"><span class="ai-event-meta-key">Details</span><span>${this._esc(event.details)}</span></div>`,
+                event.tool    && `<div class="ai-event-meta-row"><span class="ai-event-meta-key">Tool</span><span>${this._esc(event.tool)}</span></div>`,
+                event.agent   && `<div class="ai-event-meta-row"><span class="ai-event-meta-key">Agent</span><span>${this._esc(event.agent)}</span></div>`,
+                `<div class="ai-event-meta-row"><span class="ai-event-meta-key">Type</span><span>${this._esc(event.type)}</span></div>`,
+                `<div class="ai-event-meta-row"><span class="ai-event-meta-key">Status</span><span>${this._esc(event.status || 'running')}</span></div>`
+            ].filter(Boolean).join('');
+
+            el.innerHTML = `<div class="ai-event-icon"><i class="pi ${rendered.icon}" style="color:${rendered.color}"></i></div><div class="ai-event-body"><div class="ai-event-title-row"><span class="ai-event-title">${this._esc(rendered.label)}</span><button class="ai-event-expand-btn" aria-label="Details"><i class="pi pi-chevron-right"></i></button></div><div class="ai-event-expanded" aria-hidden="true"><div class="ai-event-expanded-inner">${metaRows}</div></div></div><div class="ai-event-time">${time}</div>`;
+
+            el.querySelector('.ai-event-expand-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                const exp = el.querySelector('.ai-event-expanded');
+                const btn = e.currentTarget;
+                const open = exp.getAttribute('aria-hidden') === 'false';
+                exp.setAttribute('aria-hidden', open ? 'true' : 'false');
+                btn.classList.toggle('ai-event-expand-open', !open);
+            });
+
             return el;
         },
 
@@ -474,12 +491,75 @@ const PFTemplate = (() => {
         },
 
         clear() {
-            if (!this.timelineEl) return;
-            Array.from(this.timelineEl.children).forEach(c => { if (c !== this.emptyEl) c.remove(); });
-            if (this.emptyEl) this.emptyEl.style.display = '';
+            this._clearDisplay();
+            this._history = [];
             if (this.agentLabelEl) this.agentLabelEl.textContent = '—';
             this._badgeCount = 0;
             this._updateBadge();
+        },
+
+        _clearDisplay() {
+            if (!this.timelineEl) return;
+            Array.from(this.timelineEl.children).forEach(c => { if (c !== this.emptyEl) c.remove(); });
+            if (this.emptyEl) this.emptyEl.style.display = '';
+        },
+
+        replay() {
+            if (!this._history.length || this._replayActive) return;
+            this._replayActive = true;
+            const history = [...this._history];
+            this._clearDisplay();
+
+            const firstTs = history[0].ts;
+            history.forEach(({ event, ts }) => {
+                setTimeout(() => {
+                    this._addEventRow(event, true);
+                    if (event.status === 'running') {
+                        setTimeout(() => this.updateEvent(event.id, 'success'), 400);
+                    }
+                }, ts - firstTs);
+            });
+
+            const total = history[history.length - 1].ts - firstTs;
+            setTimeout(() => { this._replayActive = false; }, total + 600);
+        },
+
+        showGraph() {
+            const overlay = document.getElementById('agent-graph-overlay');
+            if (!overlay) return;
+            this._renderGraph();
+            overlay.classList.add('graph-open');
+            overlay.setAttribute('aria-hidden', 'false');
+            overlay.addEventListener('mousedown', (e) => {
+                if (e.target === overlay) this.closeGraph();
+            }, { once: true });
+        },
+
+        closeGraph() {
+            const overlay = document.getElementById('agent-graph-overlay');
+            if (!overlay) return;
+            overlay.classList.remove('graph-open');
+            overlay.setAttribute('aria-hidden', 'true');
+        },
+
+        _renderGraph() {
+            const container = document.getElementById('agent-graph-content');
+            if (!container) return;
+            if (!this._history.length) {
+                container.innerHTML = '<p class="agent-graph-empty">No events to display. Send a message first.</p>';
+                return;
+            }
+            container.innerHTML = this._history.map(({ event }, i) => {
+                const rendered = RendererRegistry.render(event);
+                const status = event.status || 'running';
+                const connector = i < this._history.length - 1 ? '<div class="graph-connector"></div>' : '';
+                return `<div class="graph-node graph-node-${status}"><div class="graph-node-icon"><i class="pi ${rendered.icon}" style="color:${rendered.color}"></i></div><div class="graph-node-body"><div class="graph-node-title">${this._esc(rendered.label)}</div>${event.details ? `<div class="graph-node-detail">${this._esc(event.details)}</div>` : ''}</div><span class="graph-node-badge badge-${status}">${this._statusLabel(status)}</span></div>${connector}`;
+            }).join('');
+        },
+
+        _statusLabel(status) {
+            const labels = { running: 'running', success: 'success', error: 'error', warning: 'warning', waiting: 'waiting', queued: 'queued', cancelled: 'cancelled' };
+            return labels[status] || status || 'unknown';
         },
 
         _incrementBadge() {
@@ -507,37 +587,125 @@ const PFTemplate = (() => {
         }
     };
 
-    // ─── Agent Transport (stubs for SSE / WebSocket) ──────
+    // ─── Agent Transport (SSE / WebSocket with auto-reconnect) ──
 
     const AgentTransport = {
         _source: null,
         _socket: null,
+        _sseUrl: null,
+        _wsUrl: null,
+        _sseOpts: {},
+        _wsOpts: {},
 
-        connectSSE(url) {
+        connectSSE(url, opts = {}) {
+            this._sseUrl = url;
+            this._sseOpts = { reconnectDelay: 3000, ...opts };
+            this._doConnectSSE();
+        },
+
+        _doConnectSSE() {
             if (this._source) this._source.close();
-            this._source = new EventSource(url);
+            this._source = new EventSource(this._sseUrl);
             this._source.onmessage = (e) => {
                 try { AgentEventBus.emit(JSON.parse(e.data)); } catch (_) {}
             };
-            this._source.onerror = () => AgentEventBus.emit({ type: 'error', status: 'error', title: 'SSE connection lost', timestamp: new Date().toISOString() });
+            this._source.onerror = () => {
+                AgentEventBus.emit({ type: 'warning', status: 'warning', title: 'SSE reconnecting…', timestamp: new Date().toISOString() });
+                this._source.close();
+                if (this._sseUrl) setTimeout(() => this._doConnectSSE(), this._sseOpts.reconnectDelay);
+            };
         },
 
-        connectWebSocket(url) {
+        connectWebSocket(url, opts = {}) {
+            this._wsUrl = url;
+            this._wsOpts = { reconnectDelay: 3000, ...opts };
+            this._doConnectWebSocket();
+        },
+
+        _doConnectWebSocket() {
             if (this._socket) this._socket.close();
-            this._socket = new WebSocket(url);
+            this._socket = new WebSocket(this._wsUrl);
             this._socket.onmessage = (e) => {
                 try { AgentEventBus.emit(JSON.parse(e.data)); } catch (_) {}
             };
-            this._socket.onerror = () => AgentEventBus.emit({ type: 'error', status: 'error', title: 'WebSocket error', timestamp: new Date().toISOString() });
+            this._socket.onerror = () => {
+                AgentEventBus.emit({ type: 'warning', status: 'warning', title: 'WebSocket error', timestamp: new Date().toISOString() });
+            };
+            this._socket.onclose = () => {
+                if (this._wsUrl) setTimeout(() => this._doConnectWebSocket(), this._wsOpts.reconnectDelay);
+            };
         },
 
         disconnect() {
+            this._sseUrl = null;
+            this._wsUrl  = null;
             this._source?.close();
             this._socket?.close();
             this._source = null;
             this._socket = null;
         }
     };
+
+    // ─── Demo Agent ───────────────────────────────────────
+    // Simulates agent events for development/demo purposes.
+    // Set DemoAgent.enabled = false (or remove wiring in DOMContentLoaded)
+    // when connecting a real backend via AgentTransport.
+
+    const DemoAgent = {
+        enabled: true,
+
+        simulate(userText) {
+            if (!this.enabled) return;
+            const snippet = userText.length > 40 ? userText.substring(0, 40) + '…' : userText;
+            const isCode = userText.toLowerCase().includes('code') || userText.toLowerCase().includes('example');
+            const ts = () => new Date().toISOString();
+            const mkId = (n) => 'demo-' + Date.now() + '-' + n;
+
+            const steps = [
+                [0,    { id: mkId(0), type: 'agent_started', status: 'running', title: 'Processing request',       agent: 'AssistantAgent', details: `"${snippet}"` }, 300],
+                [400,  { id: mkId(1), type: 'reasoning',     status: 'running', title: 'Analyzing query',          agent: 'AssistantAgent' }, 300],
+                [800,  { id: mkId(2), type: 'tool_call',     status: 'running', title: 'Searching knowledge base', agent: 'AssistantAgent', tool: 'database.search', details: 'Retrieving relevant context' }, 650],
+                [1500, { id: mkId(3), type: 'tool_result',   status: 'success', title: 'Found relevant context',   agent: 'AssistantAgent', tool: 'database.search', details: '3 results returned' }, null],
+                ...(isCode ? [
+                    [1900, { id: mkId(4), type: 'tool_call',   status: 'running', title: 'Fetching code snippet',  agent: 'AssistantAgent', tool: 'code.fetch', details: 'Retrieving example' }, 600],
+                    [2550, { id: mkId(5), type: 'tool_result', status: 'success', title: 'Code snippet ready',     agent: 'AssistantAgent', tool: 'code.fetch' }, null]
+                ] : []),
+                [isCode ? 3000 : 1900, { id: mkId(6), type: 'reasoning',     status: 'running', title: 'Composing response', agent: 'AssistantAgent', details: 'Synthesizing results' }, 350],
+                [isCode ? 3400 : 2300, { id: mkId(7), type: 'agent_finished', status: 'success', title: 'Response ready',    agent: 'AssistantAgent' }, null]
+            ];
+
+            steps.forEach(([delay, evt, resolveMs]) => {
+                setTimeout(() => {
+                    AgentEventBus.emit({ ...evt, timestamp: ts() });
+                    if (resolveMs !== null) setTimeout(() => activityPanel.updateEvent(evt.id, 'success'), resolveMs);
+                }, delay);
+            });
+        }
+    };
+
+    // ─── Plugin Registry ──────────────────────────────────
+    // Register a plugin: { id, label, renderers: { 'type': (evt) => {icon, color, label} } }
+    // Each plugin registers its event types into RendererRegistry.
+
+    const PluginRegistry = {
+        _plugins: {},
+
+        register(descriptor) {
+            if (!descriptor?.id) throw new Error('[PluginRegistry] descriptor must have an id');
+            this._plugins[descriptor.id] = descriptor;
+            if (descriptor.renderers) {
+                Object.entries(descriptor.renderers).forEach(([type, fn]) => RendererRegistry.register(type, fn));
+            }
+        },
+
+        list() {
+            return Object.values(this._plugins).map(p => ({ id: p.id, label: p.label || p.id }));
+        }
+    };
+
+    function registerPlugin(descriptor) {
+        PluginRegistry.register(descriptor);
+    }
 
     // ─── Command Palette ──────────────────────────────────
 
@@ -554,6 +722,10 @@ const PFTemplate = (() => {
             if (!this.overlay) return;
 
             document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    const graphOverlay = document.getElementById('agent-graph-overlay');
+                    if (graphOverlay?.getAttribute('aria-hidden') === 'false') activityPanel.closeGraph();
+                }
                 if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
                     e.preventDefault();
                     this.isOpen ? this.close() : this.open();
@@ -694,5 +866,5 @@ const PFTemplate = (() => {
         });
     });
 
-    return { setTheme, cycleTheme, setMenuLayout, setMenuTheme, setInputStyle, setRtl, toggleMenu, toggleDropdown, closeAllDropdowns, toggleAiPanel, setAiStatus, openConfig, palette, aiPanel, activityPanel, AgentEventBus, RendererRegistry, AgentTransport };
+    return { setTheme, cycleTheme, setMenuLayout, setMenuTheme, setInputStyle, setRtl, toggleMenu, toggleDropdown, closeAllDropdowns, toggleAiPanel, setAiStatus, openConfig, palette, aiPanel, activityPanel, AgentEventBus, RendererRegistry, AgentTransport, DemoAgent, PluginRegistry, registerPlugin };
 })();
