@@ -1,6 +1,17 @@
 # PF Modern Template
 
-A modern, production-ready application template built on **PrimeFaces 15**, **Jakarta EE 11**, and **Java 21**. Designed as a zero-dependency UI shell that any enterprise Java application can drop into — with a fully custom CSS architecture, AI assistant panel, and a built-in generic AI agent activity system.
+A modern, production-ready application template built on **PrimeFaces 15**, **Jakarta EE 11**, and **Java 21**.
+
+Beyond the standard rich web application template features — theming, responsive layout, navigation, command palette — this template includes a **generic, event-driven UI component system** for visualizing agent and workflow activity in real time.
+
+Any backend system sends JSON events; the template receives and renders them with no knowledge of the source:
+
+- AI agent frameworks (LangChain, LlamaIndex, custom Java agents)
+- Orchestration engines (Temporal, Camunda, Apache Airflow)
+- RAG pipelines and AI copilots
+- Any workflow or automation system
+
+The template does not know — and does not care — whether the events come from OpenAI, a custom LLM, a rule engine, or a batch job. It only knows how to render them.
 
 ## Tech Stack
 
