@@ -142,16 +142,17 @@ The project uses Eclipse facets: `java 21`, `jst.web 6.0`, `jst.jsf 4.0`, `jst.c
 | `scripts` | Page-specific scripts before `</body>` |
 
 ### JavaScript API
+
+The `PFTemplate` global is available on every page once `layout.js` loads:
+
 ```javascript
-PFTemplate.setTheme('dark')           // light | dark | dim
-PFTemplate.setMenuLayout('overlay')   // static | overlay | slim | horizontal
-PFTemplate.setMenuTheme('light')      // dark | light
-PFTemplate.setInputStyle('filled')    // outlined | filled
-PFTemplate.setRtl(true)
-PFTemplate.toggleAiPanel()
-PFTemplate.openConfig()
-PFTemplate.palette.open()
+PFTemplate.setTheme('dark')        // light | dark | dim
+PFTemplate.toggleAiPanel()         // open / close the AI panel
+PFTemplate.palette.open()          // open the command palette
+PFTemplate.setMenuLayout('slim')   // static | overlay | slim | horizontal
 ```
+
+→ Full method reference: [doc/api-reference.md](doc/api-reference.md)
 
 ### App-layer CSS override example
 ```css
@@ -165,7 +166,24 @@ PFTemplate.palette.open()
 
 ## AI Agent Activity Panel
 
-The Activity tab is a **generic, event-driven observability layer**. The template knows nothing about AI logic — it only receives, renders, and groups events. Any backend (LangChain, custom Java agent, workflow engine, RAG pipeline) connects by emitting JSON events.
+The **Activity tab** is a generic, event-driven observability layer built into the AI panel.
+It gives your users a live view of what any agent, workflow, or automation is doing — without
+the template knowing anything about the logic behind it.
+
+**What users see:**
+
+- A scrollable timeline of events — each with an icon, color-coded status, title, and timestamp
+- Live status transitions: a spinning border turns green (success) or red (error) as events resolve
+- Expandable detail rows for tool calls, reasoning steps, and results
+- A badge on the Activity tab counting new events since the user last looked
+- A **Task Graph** button — opens a visual overlay showing the dependency graph of the current run
+- A **Replay** button — replays the entire session at original timing for demos or debugging
+- A **Clear** button to reset the timeline between runs
+
+**What your backend does:**
+
+It emits simple JSON events — one per step. The template renders them automatically.
+Your backend does not import or depend on the template in any way.
 
 ### Event model
 
@@ -182,90 +200,103 @@ The Activity tab is a **generic, event-driven observability layer**. The templat
 }
 ```
 
-**Built-in event types:** `agent_started`, `agent_finished`, `tool_call`, `tool_result`, `reasoning`, `browser_action`, `file_operation`, `workflow_step`, `human_input_required`, `warning`, `error`
+**Built-in event types:** `agent_started`, `agent_finished`, `tool_call`, `tool_result`,
+`reasoning`, `browser_action`, `file_operation`, `workflow_step`, `human_input_required`,
+`warning`, `error`
 
 **Status values:** `running`, `success`, `error`, `warning`, `waiting`, `queued`, `cancelled`
 
-### Connecting a real backend
+→ Complete event schema and field reference: [doc/event-reference.md](doc/event-reference.md)
 
-**Option A — Server-Sent Events (Jakarta / Java)**
+### Connecting a backend
 
-```java
-// Jakarta EE SSE endpoint
-@Path("/agent/events")
-public class AgentEventResource {
-    @GET
-    @Produces(MediaType.SERVER_SENT_EVENTS)
-    public void stream(@Context SseEventSink sink, @Context Sse sse) {
-        // emit events as agent runs
-        sink.send(sse.newEvent(Json.createObjectBuilder()
-            .add("id",        UUID.randomUUID().toString())
-            .add("timestamp", Instant.now().toString())
-            .add("type",      "tool_call")
-            .add("status",    "running")
-            .add("title",     "Searching database")
-            .add("agent",     "MyAgent")
-            .build().toString()));
-    }
-}
-```
+The template supports three connection methods — SSE, WebSocket, and direct JavaScript.
+Add this to your page once you have a real backend:
 
 ```javascript
-// In your page script — connects and auto-reconnects
+// Server-Sent Events (recommended for Jakarta EE)
 PFTemplate.AgentTransport.connectSSE('/api/agent/events');
+PFTemplate.DemoAgent.enabled = false;   // turns off the built-in demo simulation
 
-// Disable demo simulation when using real backend
-PFTemplate.DemoAgent.enabled = false;
-```
-
-**Option B — WebSocket**
-
-```javascript
+// Or WebSocket
 PFTemplate.AgentTransport.connectWebSocket('wss://yourserver/agent/ws');
 PFTemplate.DemoAgent.enabled = false;
 ```
 
-**Option C — Emit directly from JavaScript**
-
-```javascript
-PFTemplate.AgentEventBus.emit({
-    id:        'evt-' + Date.now(),
-    timestamp: new Date().toISOString(),
-    type:      'tool_call',
-    status:    'running',
-    title:     'Calling external API',
-    agent:     'MyAgent',
-    tool:      'http.get'
-});
-```
+→ Full Jakarta EE examples (SSE endpoint, Java agent service, WebSocket): [doc/integration-guide.md](doc/integration-guide.md)
 
 ### Plugin API
 
-Register custom event types — icons, colors, labels:
+The template ships with renderers for all built-in event types. The **Plugin API** lets you
+add renderers for your own custom event types — controlling the icon, color, and label that
+appears in the timeline for each type your backend emits.
+
+Without a plugin, unknown event types fall back to a generic grey dot. With one, your
+`crm.lookup` event renders as a purple person icon with the label you define:
 
 ```javascript
 PFTemplate.registerPlugin({
     id:    'crm-plugin',
     label: 'CRM Plugin',
     renderers: {
-        'crm.lookup': (e) => ({ icon: 'pi-users',   color: '#6366f1', label: e.title || 'CRM Lookup'  }),
-        'crm.update': (e) => ({ icon: 'pi-pencil',  color: '#6366f1', label: e.title || 'CRM Update'  }),
-        'email.send': (e) => ({ icon: 'pi-envelope', color: '#0ea5e9', label: e.title || 'Send Email'  }),
+        'crm.lookup': function(e) { return { icon: 'pi-users',    color: '#6366f1', label: e.title || 'CRM Lookup' }; },
+        'crm.update': function(e) { return { icon: 'pi-pencil',   color: '#6366f1', label: e.title || 'CRM Update' }; },
+        'email.send': function(e) { return { icon: 'pi-envelope', color: '#0ea5e9', label: e.title || 'Send Email' }; }
     }
 });
 ```
 
+→ Step-by-step plugin creation guide: [doc/plugin-guide.md](doc/plugin-guide.md)
+
 ### Panel configuration
+
+`activityPanel.configure()` lets you tailor the Activity panel to your application — rename
+the tab, set the agent label shown in the toolbar, auto-open the panel when events arrive,
+and customize the empty-state text shown before any run starts:
 
 ```javascript
 PFTemplate.activityPanel.configure({
-    agentName:     'ETL Pipeline',       // agent label shown in toolbar
-    tabLabel:      'Pipeline',           // renames "Activity" tab
-    autoSwitchTab: true,                 // auto-open Activity tab on first event
-    emptyTitle:    'No pipeline runs',
-    emptySubtitle: 'Trigger a run to see events here.'
+    agentName:     'ETL Pipeline',         // label shown in the Activity tab toolbar
+    tabLabel:      'Pipeline',             // replaces the default "Activity" tab name
+    autoSwitchTab: true,                   // auto-switches to Activity tab on first event
+    emptyTitle:    'No pipeline runs yet',
+    emptySubtitle: 'Trigger a run to see live events here.'
 });
 ```
+
+Call `configure()` in your page's `scripts` slot, before any events arrive.
+
+## Multimodal Input
+
+The AI chat input accepts more than text. Users can attach files and images alongside their
+messages — by clicking the attach buttons, dragging files onto the input area, or pasting an
+image from the clipboard with Ctrl+V.
+
+**What users get:**
+
+- 📎 File picker — images, PDF, DOCX, XLSX, CSV, TXT, LOG
+- 🖼 Image picker — images only
+- Drag-and-drop onto the chat input
+- Ctrl+V clipboard paste (images)
+- Attachment chips with image thumbnails and file size
+- Validation with instant feedback (20 MB limit, allowed types)
+
+**What your application receives:**
+
+When the user presses Send, the template fires a single `user_message` event on `InputEventBus`:
+
+```javascript
+PFTemplate.InputEventBus.on('user_message', function(msg) {
+    // msg.text        — typed message (string, may be empty)
+    // msg.attachments — serializable metadata [{ id, type, mimeType, name, size }]
+    // msg.files       — native File objects [{ id, file }] — usable with FormData + fetch
+    // msg.timestamp   — ISO 8601 string
+});
+```
+
+The template collects the input. Your application decides what to do with it.
+
+→ Full integration guide with worked examples: [doc/multimodal-input-guide.md](doc/multimodal-input-guide.md)
 
 ## Roadmap
 
@@ -273,7 +304,8 @@ PFTemplate.activityPanel.configure({
 - [x] Phase 2 — Theme system (light/dark/dim, menu modes, RTL)
 - [x] Phase 3 — Command palette, config panel
 - [x] Phase 4 — AI Assistant Panel (chat, markdown, voice input, retry)
-- [ ] Phase 5 — AI Agent Activity Panel (generic event stream, timeline UI, renderer registry)
+- [x] Phase 5 — AI Agent Activity Panel (generic event stream, timeline UI, task graph, replay, plugin API)
+- [x] Phase 5b — Multimodal Input (drag-drop, clipboard paste, file/image picker, InputEventBus)
 - [ ] Phase 6 — Demo pages (dashboard, login, error, 404)
 
 ## License
