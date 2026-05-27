@@ -885,16 +885,16 @@
         display: flex;
         flex-direction: column;
         gap: 0.3rem;
+        position: relative; /* required for .ai-drop-indicator absolute positioning */
     }
 
     .ai-panel-input-wrapper {
         display: flex;
-        align-items: flex-end;
-        gap: 0.5rem;
+        flex-direction: column; /* textarea on top, dock row below — like modern chat UIs */
         background: var(--surface-card);
         border: 1px solid var(--surface-border);
         border-radius: 10px;
-        padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+        padding: 0.5rem 0.5rem 0.375rem 0.75rem;
         transition: border-color 0.15s;
 
         &:focus-within {
@@ -903,7 +903,7 @@
     }
 
     .ai-panel-textarea {
-        flex: 1;
+        width: 100%; /* fills the column-flex wrapper — replaces flex:1 from the old row layout */
         border: none;
         background: transparent;
         resize: none;
@@ -948,25 +948,44 @@
         opacity: 0.7;
     }
 
-    /* ─── AI voice button ────────────────────────────── */
+    /* ─── AI input dock (attach / image / voice buttons) ── */
 
-    .ai-panel-voice {
+    /* Dock row sits below the textarea inside .ai-panel-input-wrapper.
+       Left group: icon-only action buttons. Right: primary Send button. */
+    .ai-input-dock {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 0.25rem;
+        margin-left: -0.25rem; /* optical alignment: left-align icons with textarea text */
+    }
+
+    .ai-dock-actions {
+        display: flex;
+        align-items: center;
+    }
+
+    /* Base style shared by attach, image, and voice buttons.
+       Same visual language as icon-only toolbar buttons in VS Code or Figma. */
+    .ai-dock-btn {
         background: none;
         border: none;
         cursor: pointer;
         color: var(--text-color-secondary);
-        width: 32px;
-        height: 32px;
-        border-radius: 7px;
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
         display: flex;
         align-items: center;
         justify-content: center;
         transition: color 0.15s, background 0.15s;
         flex-shrink: 0;
 
-        &:hover { color: var(--text-color); background: color-mix(in srgb, var(--text-color-secondary) 12%, transparent); }
+        & .pi { font-size: 0.78rem; }
+        &:hover { color: var(--text-color); background: color-mix(in srgb, var(--text-color-secondary) 10%, transparent); }
     }
 
+    /* Voice button active/recording state — pulsing red, same as a recording indicator */
     .ai-panel-voice.ai-voice-active {
         color: #ef4444;
         animation: voice-pulse 1.2s ease-in-out infinite;
@@ -975,6 +994,153 @@
     @keyframes voice-pulse {
         0%, 100% { opacity: 1; }
         50%       { opacity: 0.45; }
+    }
+
+    /* ─── Attachment chips (pending, above the input) ─── */
+
+    /* Horizontal wrapping row of file chips shown when attachments are pending.
+       Analogous to Gmail's attachment area before you hit Send. */
+    .ai-attachments-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.375rem;
+        padding: 0.125rem 0 0.125rem;
+    }
+
+    /* Individual chip: icon/thumbnail + filename + size + remove button.
+       Max-width keeps long filenames truncated at a readable length. */
+    .ai-attachment-chip {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: var(--surface-ground);
+        border: 1px solid var(--surface-border);
+        border-radius: 8px;
+        padding: 0.22rem 0.35rem 0.22rem 0.22rem;
+        font-size: 0.72rem;
+        max-width: 160px;
+        animation: ai-msg-in 0.18s ease;
+
+        &.ai-attachment-chip-error {
+            border-color: color-mix(in srgb, #ef4444 40%, transparent);
+            background: color-mix(in srgb, #ef4444 8%, transparent);
+        }
+    }
+
+    /* Image thumbnail — replaces the icon placeholder once FileReader finishes */
+    .ai-attachment-thumb {
+        width: 28px;
+        height: 28px;
+        border-radius: 5px;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+
+    /* Generic icon container — shown for non-image types and as placeholder for images */
+    .ai-attachment-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 5px;
+        background: var(--surface-card);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 0.8rem;
+    }
+
+    .ai-attachment-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.08rem;
+        min-width: 0;
+        flex: 1;
+    }
+
+    .ai-attachment-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--text-color);
+        font-weight: 500;
+        max-width: 82px;
+    }
+
+    .ai-attachment-size {
+        color: var(--text-color-secondary);
+        font-size: 0.64rem;
+    }
+
+    .ai-attachment-remove {
+        background: none;
+        border: none;
+        padding: 2px;
+        cursor: pointer;
+        color: var(--text-color-secondary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        flex-shrink: 0;
+        opacity: 0.55;
+
+        & .pi { font-size: 0.58rem; }
+        &:hover { opacity: 1; background: color-mix(in srgb, var(--text-color-secondary) 14%, transparent); }
+    }
+
+    /* ─── Drag-and-drop overlay ──────────────────────── */
+
+    /* Full-cover overlay inside .ai-panel-input-area (which has position:relative).
+       Shown while the user drags files over the input area.
+       pointer-events:none ensures the underlying drop target still fires drop events. */
+    .ai-drop-indicator {
+        position: absolute;
+        inset: 0;
+        background: color-mix(in srgb, var(--primary-color) 8%, transparent);
+        border: 2px dashed var(--primary-color);
+        border-radius: 10px;
+        z-index: 10;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 0.4rem;
+        font-size: 0.82rem;
+        color: var(--primary-color);
+        pointer-events: none;
+
+        & .pi { font-size: 1.1rem; }
+        &.ai-drop-active { display: flex; }
+    }
+
+    /* ─── Sent attachment chips (inside chat messages) ── */
+
+    /* Chips shown in the user message bubble after Send.
+       Right-aligned (via .ai-message-user align-items:flex-end on the parent). */
+    .ai-sent-attachments {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        max-width: 90%;
+        align-self: flex-end;
+        margin-top: 0.2rem;
+    }
+
+    /* Compact chip: icon + truncated filename, styled to match the user bubble color scheme */
+    .ai-sent-attachment {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        background: color-mix(in srgb, var(--primary-color) 18%, var(--surface-card));
+        border: 1px solid color-mix(in srgb, var(--primary-color) 28%, transparent);
+        border-radius: 6px;
+        padding: 0.18rem 0.45rem;
+        font-size: 0.7rem;
+        max-width: 150px;
+        color: var(--text-color);
+
+        & .pi { font-size: 0.72rem; flex-shrink: 0; }
+        & span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     }
 
     /* ─── Markdown content inside assistant bubbles ────── */

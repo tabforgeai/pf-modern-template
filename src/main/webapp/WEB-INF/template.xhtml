@@ -113,28 +113,79 @@
                         <p class="ai-empty-subtitle">Ask me anything about your application.</p>
                     </div>
                 </div>
-                <div class="ai-panel-input-area">
+                <div class="ai-panel-input-area" id="ai-panel-input-area">
+
+                    <!-- Attachment preview chips — hidden until files are added.
+                         Chips are injected/removed by MultimodalInput.addFiles() / removeAttachment(). -->
+                    <div class="ai-attachments-row"
+                         id="ai-attachments-row"
+                         style="display:none"
+                         aria-label="Pending attachments"></div>
+
+                    <!-- Drag-and-drop overlay — shown while the user drags files over the input area.
+                         Positioned absolute so it covers the entire ai-panel-input-area.
+                         Pointer-events: none so it does not interfere with the drop target. -->
+                    <div class="ai-drop-indicator" id="ai-drop-indicator" aria-hidden="true">
+                        <i class="pi pi-upload" />
+                        <span>Drop files to attach</span>
+                    </div>
+
                     <div class="ai-panel-input-wrapper">
                         <textarea id="ai-panel-input"
                                   class="ai-panel-textarea"
                                   placeholder="Ask AI Assistant…"
                                   rows="1"
                                   aria-label="Message AI Assistant"></textarea>
-                        <button class="ai-panel-voice"
-                                type="button"
-                                id="ai-panel-voice-btn"
-                                aria-label="Voice input">
-                            <i class="pi pi-microphone" />
-                        </button>
-                        <button class="ai-panel-send"
-                                type="button"
-                                id="ai-panel-send-btn"
-                                aria-label="Send message"
-                                onclick="PFTemplate.aiPanel.send()">
-                            <i class="pi pi-send" />
-                        </button>
+
+                        <!-- Input dock: left group (attach / image / voice), right group (send).
+                             Hidden file inputs are triggered programmatically by the dock buttons
+                             to avoid showing the native file chooser widget inline. -->
+                        <div class="ai-input-dock">
+                            <input type="file" id="ai-file-picker"
+                                   multiple="multiple"
+                                   accept="image/*,.pdf,.docx,.xlsx,.csv,.txt,.log"
+                                   style="display:none" />
+                            <input type="file" id="ai-image-picker"
+                                   multiple="multiple"
+                                   accept="image/*"
+                                   style="display:none" />
+
+                            <div class="ai-dock-actions">
+                                <button class="ai-dock-btn"
+                                        type="button"
+                                        id="ai-panel-attach-btn"
+                                        title="Attach file"
+                                        aria-label="Attach file"
+                                        onclick="document.getElementById('ai-file-picker').click()">
+                                    <i class="pi pi-paperclip" />
+                                </button>
+                                <button class="ai-dock-btn"
+                                        type="button"
+                                        id="ai-panel-image-btn"
+                                        title="Attach image"
+                                        aria-label="Attach image"
+                                        onclick="document.getElementById('ai-image-picker').click()">
+                                    <i class="pi pi-image" />
+                                </button>
+                                <button class="ai-dock-btn ai-panel-voice"
+                                        type="button"
+                                        id="ai-panel-voice-btn"
+                                        aria-label="Voice input">
+                                    <i class="pi pi-microphone" />
+                                </button>
+                            </div>
+
+                            <button class="ai-panel-send"
+                                    type="button"
+                                    id="ai-panel-send-btn"
+                                    aria-label="Send message"
+                                    onclick="PFTemplate.aiPanel.send()">
+                                <i class="pi pi-send" />
+                            </button>
+                        </div>
                     </div>
-                    <p class="ai-panel-hint">Enter to send · Shift+Enter for new line</p>
+
+                    <p class="ai-panel-hint">Enter to send · Shift+Enter for newline · Paste or drop files to attach</p>
                 </div>
             </div>
 

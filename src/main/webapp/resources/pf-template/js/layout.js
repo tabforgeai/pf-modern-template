@@ -171,24 +171,86 @@ const PFTemplate = (() => {
             if (tab === 'activity') activityPanel.resetBadge();
         },
 
+        /**
+         * Capture the current text input and pending attachments, then initiate a
+         * chat exchange: append the user message, emit an InputEvent, clear the input,
+         * and start the AI demo stream.
+         *
+         * Requires at least one of: non-empty text OR at least one attachment.
+         * Analogous to hitting "Submit" in a form — collects all fields, validates
+         * presence, then dispatches.
+         *
+         * @called-from Send button onclick (template.xhtml) and Enter key handler (aiPanel.init).
+         * @returns {void}
+         */
         send() {
             if (this.isStreaming || !this.inputEl) return;
-            const text = this.inputEl.value.trim();
-            if (!text) return;
+            const text        = this.inputEl.value.trim();
+            const attachments = MultimodalInput.getAttachments();
+            if (!text && !attachments.length) return;
 
             this.lastUserText = text;
             this.inputEl.value = '';
             this.inputEl.style.height = 'auto';
             this._hideEmpty();
-            this._appendUser(text);
-            this._stream(this._demoResponse(text));
-            DemoAgent.simulate(text);
+            this._appendUser(text, attachments);
+
+            // Snapshot File objects BEFORE clear() so they are available inside the
+            // InputEventBus callback — callers that need to upload bytes (e.g. via FormData
+            // + fetch) can read event.files[n].file. The File objects remain valid as long
+            // as any variable holds a reference; clear() only removes the template's copy.
+            const files = MultimodalInput._attachments.map(function(a) { return { id: a.id, file: a.file }; });
+
+            // Notify the consuming application (backend AI service) with the full
+            // user message payload. The template emits; the app decides what to do.
+            // event.attachments = serializable metadata (safe for JSON.stringify / SSE).
+            // event.files       = native File objects (usable with FormData/fetch; not JSON-safe).
+            InputEventBus.emit({ type: 'user_message', text, attachments, files: files, timestamp: new Date().toISOString() });
+
+            MultimodalInput.clear();
+
+            if (text) {
+                this._stream(this._demoResponse(text));
+                DemoAgent.simulate(text);
+            } else {
+                // Attachments-only send — stream an acknowledgement and simulate
+                // agent activity so the Activity tab reflects processing, just as
+                // it does for text messages.
+                const n = attachments.length;
+                const label = n === 1 ? attachments[0].name : n + ' files';
+                this._stream('I received your ' + (n === 1 ? 'attachment' : n + ' attachments') + '. In a real deployment the backend would process ' + (n === 1 ? 'it' : 'them') + ' here — e.g. via an image analysis or document processing pipeline.');
+                DemoAgent.simulate('Analyze: ' + label);
+            }
         },
 
-        _appendUser(text) {
+        /**
+         * Append a user message bubble (and optional attachment chips) to the chat area.
+         *
+         * Renders text as an escaped bubble and attachments as compact chips below it,
+         * right-aligned per standard chat UI convention (user messages on the right).
+         *
+         * @param {string} text           — the typed message text. May be empty string when
+         *   sending attachments only; in that case only chips are rendered.
+         * @param {Array}  [attachments]  — serializable attachment descriptors from
+         *   MultimodalInput.getAttachments(). Each: { id, type, mimeType, name, size }.
+         *   Defaults to empty array; no chips rendered when empty.
+         *
+         * @called-from send(), right after capturing text/attachments and before clearing input.
+         * @returns {void}
+         */
+        _appendUser(text, attachments = []) {
             const el = document.createElement('div');
             el.className = 'ai-message ai-message-user';
-            el.innerHTML = `<span class="ai-message-label">You</span><div class="ai-message-bubble">${this._esc(text)}</div>`;
+            let html = '<span class="ai-message-label">You</span>';
+            if (text) html += '<div class="ai-message-bubble">' + this._esc(text) + '</div>';
+            if (attachments.length) {
+                const chips = attachments.map(a => {
+                    const { icon, color } = MultimodalInput._chipIcon(a);
+                    return '<div class="ai-sent-attachment"><i class="pi ' + icon + '" style="color:' + color + '"></i><span>' + this._esc(a.name) + '</span></div>';
+                }).join('');
+                html += '<div class="ai-sent-attachments">' + chips + '</div>';
+            }
+            el.innerHTML = html;
             this.messagesEl.appendChild(el);
             this._scrollBottom();
         },
@@ -324,21 +386,120 @@ const PFTemplate = (() => {
     };
 
     // ─── Agent Event Bus ──────────────────────────────────
+    //
+    // INBOUND channel: events flow FROM the backend agent TO the template.
+    // The Activity Panel listens here to render timeline rows.
+    // AgentTransport (SSE / WebSocket) feeds into this bus.
 
     const AgentEventBus = {
         _listeners: {},
 
+        /**
+         * Subscribe to a specific agent event type.
+         *
+         * Use type '*' to receive every event regardless of type — useful for
+         * logging, debugging, or building custom overlays on top of all events.
+         *
+         * @param {string}   type — agent event type ('tool_call', 'agent_finished', '*', …).
+         *   Full list of built-in types: see doc/event-reference.md.
+         * @param {Function} fn   — callback invoked with the full event object on match.
+         *
+         * @called-from activityPanel.init() (subscribes '*'), and application code
+         *   that wants to react to specific agent events.
+         * @returns {void}
+         */
         on(type, fn) {
             if (!this._listeners[type]) this._listeners[type] = [];
             this._listeners[type].push(fn);
         },
 
+        /**
+         * Dispatch an agent event to all matching listeners.
+         *
+         * Fires both the type-specific handler list AND the wildcard ('*') list.
+         * Order: type-specific first, then wildcards — predictable, like DOM event bubbling.
+         *
+         * @param {object} event — agent event object. Required field: type (string).
+         *   Recommended fields: id, timestamp, status, title, agent. See doc/event-reference.md.
+         *
+         * @called-from AgentTransport (SSE/WebSocket message handlers), DemoAgent.simulate(),
+         *   and application code that emits events directly.
+         * @returns {void}
+         */
         emit(event) {
             const handlers = this._listeners[event.type] || [];
             const wildcards = this._listeners['*'] || [];
             [...handlers, ...wildcards].forEach(fn => fn(event));
         },
 
+        /**
+         * Remove all listeners from the bus.
+         *
+         * WARNING: this also removes the Activity Panel's listener registered in
+         * activityPanel.init(). Use only in tests or when intentionally resetting.
+         *
+         * @called-from Test teardown, or before registering a completely fresh set of listeners.
+         * @returns {void}
+         */
+        clear() {
+            this._listeners = {};
+        }
+    };
+
+    // ─── Input Event Bus ──────────────────────────────────
+    //
+    // OUTBOUND channel: events flow FROM the user (via the template) TO the backend.
+    // This is the counterpart to AgentEventBus — one bus per direction keeps concerns clean,
+    // analogous to separate request/response queues in a message broker (RabbitMQ, Kafka).
+    //
+    // Applications subscribe here to receive user messages (text + attachments):
+    //   PFTemplate.InputEventBus.on('user_message', (msg) => { sendToAIBackend(msg); });
+
+    const InputEventBus = {
+        _listeners: {},
+
+        /**
+         * Subscribe to a specific input event type.
+         *
+         * The main event type is 'user_message'. Use '*' to catch all input events.
+         * Called once at page-load time by the application to wire the backend.
+         *
+         * @param {string}   type — input event type. Currently: 'user_message'. Or '*' for all.
+         * @param {Function} fn   — callback invoked with the event object when type matches.
+         *   For 'user_message': fn receives { type, text, attachments[], timestamp }.
+         *
+         * @called-from Application code in <ui:insert name="scripts"> or a page-specific JS file,
+         *   after the template has loaded.
+         * @returns {void}
+         */
+        on(type, fn) {
+            if (!this._listeners[type]) this._listeners[type] = [];
+            this._listeners[type].push(fn);
+        },
+
+        /**
+         * Fire an input event to all matching subscribers.
+         *
+         * @param {object} event — input event. Must have type (string).
+         *   user_message shape: { type:'user_message', text:string, attachments:Array, timestamp:string }
+         *   attachments[] items: { id, type, mimeType, name, size } — no File objects (not serializable).
+         *
+         * @called-from aiPanel.send(), immediately after capturing text and attachment metadata,
+         *   before clearing the input field and starting the demo stream.
+         * @returns {void}
+         */
+        emit(event) {
+            const handlers = this._listeners[event.type] || [];
+            const wildcards = this._listeners['*'] || [];
+            [...handlers, ...wildcards].forEach(fn => fn(event));
+        },
+
+        /**
+         * Remove all listeners. Use only in tests or to swap backend wiring at runtime.
+         *
+         * @called-from Test teardown.
+         * @returns {void}
+         */
         clear() {
             this._listeners = {};
         }
@@ -707,6 +868,409 @@ const PFTemplate = (() => {
         PluginRegistry.register(descriptor);
     }
 
+    // ─── Multimodal Input ─────────────────────────────────
+    //
+    // Unified attachment manager for the AI chat panel.
+    // Handles three input sources: file picker buttons, drag-and-drop, and clipboard paste.
+    //
+    // Architecture analogy: this is the "attachment tray" you find in Gmail or Slack —
+    // it buffers pending files, renders preview chips, and packages everything with the
+    // outgoing message when the user hits Send.
+    //
+    // The template NEVER reads file content for AI purposes. It only:
+    //   • Validates type/size at the boundary (before any upload)
+    //   • Stores File objects locally until Send
+    //   • Emits serializable metadata via InputEventBus
+    // The consuming application (backend) decides what to do with the files.
+
+    const MultimodalInput = {
+
+        /** @type {Array<{id,file,type,mimeType,name,size,previewUrl,status}>} */
+        _attachments:   [],
+        _chipsEl:       null, // #ai-attachments-row
+        _dropIndicator: null, // #ai-drop-indicator
+        _inputArea:     null, // #ai-panel-input-area (drag target)
+        _nextId:        1,    // monotonic counter for attachment IDs
+
+        /** Maximum bytes allowed per file. Override to change the limit for a specific deployment. */
+        MAX_SIZE: 20 * 1024 * 1024,
+
+        /**
+         * MIME types accepted by the default file validation.
+         * Empty array = accept any type. Override or extend for application-specific needs.
+         * Intentionally broad — specific backends can further restrict on the server side.
+         */
+        ALLOWED_TYPES: [
+            'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml',
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'text/csv', 'text/plain',
+            'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm'
+        ],
+
+        /**
+         * Wire up all three attachment input sources: file picker change events,
+         * drag-and-drop onto the input area, and clipboard paste (Ctrl+V / Cmd+V).
+         *
+         * Uses a drag-depth counter (not a boolean) to correctly handle
+         * dragenter/dragleave flickering when the pointer crosses child-element
+         * boundaries inside the drop zone — a well-known browser quirk with drag events.
+         *
+         * @called-from DOMContentLoaded, after aiPanel.init() and activityPanel.init().
+         * @returns {void}
+         */
+        init() {
+            this._chipsEl       = document.getElementById('ai-attachments-row');
+            this._dropIndicator = document.getElementById('ai-drop-indicator');
+            this._inputArea     = document.getElementById('ai-panel-input-area');
+            if (!this._inputArea) return;
+
+            // File picker buttons: reset value after each selection so the same
+            // file can be re-selected if the user removes and re-adds it.
+            const filePicker  = document.getElementById('ai-file-picker');
+            const imagePicker = document.getElementById('ai-image-picker');
+            if (filePicker)  filePicker.addEventListener('change',  (e) => { this.addFiles(e.target.files); e.target.value = ''; });
+            if (imagePicker) imagePicker.addEventListener('change', (e) => { this.addFiles(e.target.files); e.target.value = ''; });
+
+            // Drag counter: each dragenter increments, each dragleave decrements.
+            // Indicator shows only while counter > 0, preventing flicker on child crossings.
+            let _dragDepth = 0;
+            this._inputArea.addEventListener('dragenter', (e) => {
+                e.preventDefault();
+                if (++_dragDepth === 1 && this._dropIndicator) this._dropIndicator.classList.add('ai-drop-active');
+            });
+            this._inputArea.addEventListener('dragleave', () => {
+                if (--_dragDepth <= 0) { _dragDepth = 0; if (this._dropIndicator) this._dropIndicator.classList.remove('ai-drop-active'); }
+            });
+            this._inputArea.addEventListener('dragover', (e) => e.preventDefault());
+            this._inputArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                _dragDepth = 0;
+                if (this._dropIndicator) this._dropIndicator.classList.remove('ai-drop-active');
+                if (e.dataTransfer.files.length) this.addFiles(e.dataTransfer.files);
+            });
+
+            // Clipboard paste: intercept only when image items are present.
+            // Text-only pastes fall through to the browser's default textarea behavior.
+            const textarea = document.getElementById('ai-panel-input');
+            if (textarea) {
+                textarea.addEventListener('paste', (e) => {
+                    const imageItems = Array.from(e.clipboardData?.items || []).filter(i => i.kind === 'file' && i.type.startsWith('image/'));
+                    if (!imageItems.length) return;
+                    e.preventDefault(); // suppress raw data-URL text insertion
+                    this.addFiles(imageItems.map(i => i.getAsFile()).filter(Boolean));
+                });
+            }
+        },
+
+        /**
+         * Add one or more files to the pending attachment store.
+         *
+         * Single entry point for all three input sources (picker, drag-drop, paste).
+         * Each file is validated first; rejected files show a transient error chip
+         * and also emit a warning event to the AgentEventBus (visible in Activity tab).
+         * Accepted image files get a thumbnail preview loaded asynchronously via FileReader.
+         *
+         * Uses a for-loop rather than Array.from + forEach because FileList is not a
+         * true Array — it lacks .forEach() in some older browser environments.
+         *
+         * @param {FileList|File[]} fileList — native FileList from input.files / dataTransfer.files,
+         *   or a plain Array<File> built from clipboard DataTransferItem.getAsFile() calls.
+         *
+         * @called-from file picker change handlers, drop handler, and paste handler (all in init).
+         * @returns {void}
+         */
+        addFiles(fileList) {
+            for (let i = 0; i < fileList.length; i++) {
+                const file = fileList[i];
+                if (!file) continue;
+                const err = this._validate(file);
+                if (err) {
+                    AgentEventBus.emit({ type: 'warning', status: 'warning', title: 'Attachment rejected', details: err, timestamp: new Date().toISOString() });
+                    this._addErrorChip(file.name, err);
+                    continue;
+                }
+                const attachment = { id: 'att-' + (this._nextId++), file, type: this._classifyType(file.type), mimeType: file.type, name: file.name, size: file.size, previewUrl: null, status: 'ready' };
+                this._attachments.push(attachment);
+                // Load image thumbnails asynchronously — chip appears immediately with an icon,
+                // then swaps to <img> once FileReader finishes (non-blocking).
+                if (attachment.type === 'image') {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => { attachment.previewUrl = ev.target.result; this._updateChipPreview(attachment); };
+                    reader.readAsDataURL(file);
+                }
+                this._addChip(attachment);
+            }
+            this._updateChipsVisibility();
+        },
+
+        /**
+         * Validate a single file against size and MIME type constraints.
+         *
+         * Mirrors server-side input validation — check at the earliest possible moment
+         * (before any upload) to give instant, zero-latency feedback to the user.
+         * The server should still validate; this is a UX convenience, not a security gate.
+         *
+         * @param {File} file — native File object. .size is always reliable; .type may be
+         *   empty string for unusual or OS-specific file types.
+         * @returns {string|null} — null = file passes all checks and may be accepted.
+         *   Non-null string = human-readable rejection reason, shown as an error chip.
+         *
+         * @called-from addFiles(), per file, before adding it to _attachments.
+         */
+        _validate(file) {
+            if (file.size > this.MAX_SIZE) return file.name + ' exceeds ' + (this.MAX_SIZE / 1024 / 1024).toFixed(0) + ' MB limit';
+            if (this.ALLOWED_TYPES.length && !this.ALLOWED_TYPES.includes(file.type)) return file.name + ': unsupported type (' + (file.type || 'unknown') + ')';
+            return null;
+        },
+
+        /**
+         * Map a MIME type to a simplified display category used for icon and color selection.
+         *
+         * Analogous to a content-type resolver in a file manager (Finder, Explorer) —
+         * the raw MIME string is too granular for UI purposes; this maps it to a small
+         * set of categories that drive consistent visual presentation.
+         *
+         * @param {string} mimeType — MIME type string, e.g. 'image/png', 'application/pdf'.
+         *   An empty string is mapped to 'other'.
+         * @returns {'image'|'pdf'|'spreadsheet'|'document'|'audio'|'text'|'other'}
+         *
+         * @called-from addFiles(), when building the attachment descriptor object.
+         */
+        _classifyType(mimeType) {
+            if (mimeType.startsWith('image/'))       return 'image';
+            if (mimeType === 'application/pdf')      return 'pdf';
+            if (mimeType.includes('spreadsheet') || mimeType === 'text/csv') return 'spreadsheet';
+            if (mimeType.includes('wordprocessing')) return 'document';
+            if (mimeType.startsWith('audio/'))       return 'audio';
+            if (mimeType.startsWith('text/'))        return 'text';
+            return 'other';
+        },
+
+        /**
+         * Build and insert a preview chip for a valid attachment.
+         *
+         * Image chips initially show an icon placeholder; the actual thumbnail is
+         * swapped in asynchronously by _updateChipPreview() when FileReader completes.
+         * All other types show the appropriate type icon immediately and permanently.
+         *
+         * @param {object} attachment — descriptor built in addFiles():
+         *   { id, file, type, mimeType, name, size, previewUrl:null, status:'ready' }
+         *
+         * @called-from addFiles(), once per accepted file, after pushing to _attachments.
+         * @returns {void}
+         */
+        _addChip(attachment) {
+            if (!this._chipsEl) return;
+            this._chipsEl.appendChild(this._buildChip(attachment));
+        },
+
+        /**
+         * Construct the DOM element for a single attachment chip.
+         *
+         * Visual design mirrors Gmail / Slack attachment chips: compact card with
+         * icon (or thumbnail), truncated filename, file size, and a remove (×) button.
+         * The × button is wired directly to removeAttachment() to stay decoupled from
+         * any event delegation.
+         *
+         * HTML is built with string concatenation (not template literals) to stay
+         * compatible with Eclipse JSDT's single-line template literal requirement.
+         *
+         * @param {object} attachment — same descriptor as _addChip().
+         * @returns {HTMLElement} — a fully wired chip <div> ready for DOM insertion.
+         *
+         * @called-from _addChip().
+         */
+        _buildChip(attachment) {
+            const chip = document.createElement('div');
+            chip.className = 'ai-attachment-chip';
+            chip.dataset.attachId = attachment.id;
+            const { icon, color } = this._chipIcon(attachment);
+            // For images: start with icon placeholder (data-attach-icon attribute is the lookup key
+            // used by _updateChipPreview to swap it with the real thumbnail once loaded).
+            const iconHtml = attachment.type === 'image'
+                ? '<div class="ai-attachment-icon ai-attachment-img-placeholder" data-attach-icon="' + attachment.id + '"><i class="pi ' + icon + '" style="color:' + color + '"></i></div>'
+                : '<div class="ai-attachment-icon"><i class="pi ' + icon + '" style="color:' + color + '"></i></div>';
+            chip.innerHTML = iconHtml + '<div class="ai-attachment-info"><span class="ai-attachment-name" title="' + this._esc(attachment.name) + '">' + this._esc(attachment.name) + '</span><span class="ai-attachment-size">' + this._formatSize(attachment.size) + '</span></div><button class="ai-attachment-remove" type="button" aria-label="Remove attachment"><i class="pi pi-times"></i></button>';
+            chip.querySelector('.ai-attachment-remove').addEventListener('click', () => this.removeAttachment(attachment.id));
+            return chip;
+        },
+
+        /**
+         * Swap the icon placeholder in an image chip for an actual <img> thumbnail,
+         * once FileReader has finished loading the file as a base64 data URL.
+         *
+         * This is called asynchronously via FileReader.onload — the chip is already
+         * in the DOM by this point, so the replacement happens in place (no re-render).
+         * base64 data URLs are regular strings; no revokeObjectURL is needed.
+         *
+         * @param {object} attachment — same descriptor; previewUrl is now populated
+         *   with a 'data:image/...;base64,...' string from FileReader.readAsDataURL().
+         *
+         * @called-from addFiles() → FileReader.onload callback (asynchronous).
+         * @returns {void}
+         */
+        _updateChipPreview(attachment) {
+            if (!this._chipsEl || !attachment.previewUrl) return;
+            const placeholder = this._chipsEl.querySelector('[data-attach-icon="' + attachment.id + '"]');
+            if (!placeholder) return;
+            const img = document.createElement('img');
+            img.className = 'ai-attachment-thumb';
+            img.src = attachment.previewUrl;
+            img.alt = attachment.name;
+            placeholder.replaceWith(img);
+        },
+
+        /**
+         * Display a temporary error chip when a file fails validation.
+         *
+         * Auto-removes after 3 seconds — consistent with toast notification conventions
+         * (brief, non-blocking, no user action required to dismiss).
+         * Also emits a warning to the AgentEventBus so the Activity tab can log it.
+         *
+         * @param {string} name — filename displayed in the chip for context.
+         * @param {string} msg  — rejection reason string returned by _validate().
+         *
+         * @called-from addFiles(), for each file where _validate() returned non-null.
+         * @returns {void}
+         */
+        _addErrorChip(name, msg) {
+            if (!this._chipsEl) return;
+            this._updateChipsVisibility(true);
+            const chip = document.createElement('div');
+            chip.className = 'ai-attachment-chip ai-attachment-chip-error';
+            chip.innerHTML = '<div class="ai-attachment-icon"><i class="pi pi-times-circle" style="color:#ef4444"></i></div><div class="ai-attachment-info"><span class="ai-attachment-name" title="' + this._esc(msg) + '">' + this._esc(name) + '</span><span class="ai-attachment-size" style="color:#ef4444">Rejected</span></div>';
+            this._chipsEl.appendChild(chip);
+            setTimeout(() => { chip.remove(); this._updateChipsVisibility(); }, 3000);
+        },
+
+        /**
+         * Remove a pending attachment by its ID.
+         *
+         * Splices the descriptor out of _attachments, removes the chip from the DOM,
+         * and hides the chip row if no attachments remain. The File object is freed for
+         * garbage collection when the last reference (the descriptor) is removed.
+         *
+         * @param {string} id — attachment ID in the form 'att-N', assigned in addFiles().
+         *   Also set as data-attach-id on the chip <div> for O(1) DOM lookup via querySelector.
+         *
+         * @called-from chip remove button click handler, wired in _buildChip().
+         * @returns {void}
+         */
+        removeAttachment(id) {
+            const idx = this._attachments.findIndex(a => a.id === id);
+            if (idx !== -1) this._attachments.splice(idx, 1);
+            this._chipsEl?.querySelector('[data-attach-id="' + id + '"]')?.remove();
+            this._updateChipsVisibility();
+        },
+
+        /**
+         * Clear all pending attachments and reset the chip row to hidden.
+         *
+         * Called automatically by aiPanel.send() after packaging attachments into the
+         * outgoing InputEvent — ensures each message starts with a clean slate.
+         * File objects are released for garbage collection when _attachments is reassigned.
+         *
+         * @called-from aiPanel.send(), after getAttachments() has already captured a snapshot.
+         * @returns {void}
+         */
+        clear() {
+            this._attachments = [];
+            if (this._chipsEl) this._chipsEl.innerHTML = '';
+            this._updateChipsVisibility();
+        },
+
+        /**
+         * Return serializable metadata for all pending attachments.
+         *
+         * Intentionally excludes the native File object because File is not
+         * JSON-serializable and should not cross the template/application boundary directly.
+         * Callers that need the raw bytes (e.g. to POST to a storage endpoint) can access
+         * this._attachments to get the full descriptor including the File reference.
+         *
+         * @returns {Array<{id, type, mimeType, name, size}>} — snapshot of pending attachments.
+         *   Empty array if no files are pending. Safe to JSON.stringify().
+         *
+         * @called-from aiPanel.send(), to build the user_message payload for InputEventBus.
+         * @called-from aiPanel._appendUser(), to render sent-message chips.
+         */
+        getAttachments() {
+            return this._attachments.map(a => ({ id: a.id, type: a.type, mimeType: a.mimeType, name: a.name, size: a.size }));
+        },
+
+        /**
+         * Show or hide the chip row based on whether content is present.
+         *
+         * Uses display:flex/none (not a CSS class) because the element is initialized
+         * with inline style="display:none" in template.xhtml — this ensures the correct
+         * initial hidden state before JavaScript loads, preventing a flash of empty space.
+         *
+         * @param {boolean} [forceShow] — when true, show the row even if _attachments is
+         *   empty (needed for error chips that appear before any valid file is added).
+         *
+         * @called-from addFiles(), removeAttachment(), clear(), _addErrorChip().
+         * @returns {void}
+         */
+        _updateChipsVisibility(forceShow) {
+            if (!this._chipsEl) return;
+            const hasContent = forceShow || this._attachments.length > 0 || this._chipsEl.children.length > 0;
+            this._chipsEl.style.display = hasContent ? 'flex' : 'none';
+        },
+
+        /**
+         * Return the PrimeIcons icon class and CSS color for a given attachment category.
+         *
+         * Follows the same icon-mapping pattern as RendererRegistry built-in renderers —
+         * a category string maps to a { icon, color } visual descriptor.
+         * Also used by aiPanel._appendUser() for the sent-message chips.
+         *
+         * @param {object} attachment — needs only the .type field (e.g. 'image', 'pdf').
+         *   As classified by _classifyType() when the attachment was created.
+         * @returns {{ icon: string, color: string }} — icon is a PrimeIcons class (e.g. 'pi-image');
+         *   color is a CSS color value or CSS custom property reference.
+         *
+         * @called-from _buildChip() and aiPanel._appendUser().
+         */
+        _chipIcon(attachment) {
+            const map = { image: { icon: 'pi-image', color: 'var(--primary-color)' }, pdf: { icon: 'pi-file-pdf', color: '#ef4444' }, spreadsheet: { icon: 'pi-table', color: '#22c55e' }, document: { icon: 'pi-file', color: '#3b82f6' }, audio: { icon: 'pi-volume-up', color: '#a855f7' }, text: { icon: 'pi-file', color: 'var(--text-color-secondary)' } };
+            return map[attachment.type] || { icon: 'pi-paperclip', color: 'var(--text-color-secondary)' };
+        },
+
+        /**
+         * Format a raw byte count as a human-readable size string.
+         *
+         * Matches OS file manager conventions (Finder, Windows Explorer):
+         * MB for large, KB for medium, B for tiny files.
+         *
+         * @param {number} bytes — file size in bytes, from the native File.size property.
+         *   Always a non-negative integer.
+         * @returns {string} — e.g. '3.2 MB', '840 KB', '512 B'.
+         *
+         * @called-from _buildChip(), to display file size in the chip.
+         */
+        _formatSize(bytes) {
+            if (bytes >= 1_000_000) return (bytes / 1_000_000).toFixed(1) + ' MB';
+            if (bytes >= 1_000)     return (bytes / 1_000).toFixed(0) + ' KB';
+            return bytes + ' B';
+        },
+
+        /**
+         * Escape a string for safe HTML attribute / text node insertion.
+         *
+         * Prevents XSS from maliciously crafted filenames like '<script>alert(1)</script>.pdf'
+         * or 'file" onmouseover="...".png'.
+         *
+         * @param {string} str — raw string, typically a filename or validation error message.
+         * @returns {string} — HTML-safe version with &, <, >, " escaped to entity references.
+         *
+         * @called-from _buildChip(), _addErrorChip().
+         */
+        _esc(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+    };
+
     // ─── Command Palette ──────────────────────────────────
 
     const palette = {
@@ -850,6 +1414,7 @@ const PFTemplate = (() => {
         palette.init();
         aiPanel.init();
         activityPanel.init();
+        MultimodalInput.init();
 
         // Close topbar dropdowns when clicking outside
         document.addEventListener('click', (e) => {
@@ -866,5 +1431,5 @@ const PFTemplate = (() => {
         });
     });
 
-    return { setTheme, cycleTheme, setMenuLayout, setMenuTheme, setInputStyle, setRtl, toggleMenu, toggleDropdown, closeAllDropdowns, toggleAiPanel, setAiStatus, openConfig, palette, aiPanel, activityPanel, AgentEventBus, RendererRegistry, AgentTransport, DemoAgent, PluginRegistry, registerPlugin };
+    return { setTheme, cycleTheme, setMenuLayout, setMenuTheme, setInputStyle, setRtl, toggleMenu, toggleDropdown, closeAllDropdowns, toggleAiPanel, setAiStatus, openConfig, palette, aiPanel, activityPanel, AgentEventBus, InputEventBus, RendererRegistry, AgentTransport, DemoAgent, PluginRegistry, registerPlugin, MultimodalInput };
 })();
