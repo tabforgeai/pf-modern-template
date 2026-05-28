@@ -1207,25 +1207,150 @@
         opacity: 1;
     }
 
-    /* ─── Retry button ────────────────────────────────── */
+    /* ─── Output action toolbar ──────────────────────── */
 
-    .ai-retry-btn {
+    .ai-message-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
         align-self: flex-start;
         margin-top: 0.2rem;
+        opacity: 0.5;
+        transition: opacity 0.15s;
+    }
+
+    .ai-message-assistant:hover .ai-message-actions,
+    .ai-message-assistant:focus-within .ai-message-actions {
+        opacity: 1;
+    }
+
+    .ai-action-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.2rem 0.55rem;
         background: none;
         border: 1px solid var(--surface-border);
         border-radius: 6px;
         color: var(--text-color-secondary);
         font-size: 0.72rem;
-        padding: 0.2rem 0.6rem;
         cursor: pointer;
+        white-space: nowrap;
+        transition: border-color 0.15s, color 0.15s, background 0.15s;
+
+        & .pi { font-size: 0.68rem; }
+
+        &:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            background: color-mix(in srgb, var(--primary-color) 8%, transparent);
+        }
+    }
+
+    /* ─── TTS Player bar ─────────────────────────────── */
+
+    /* Compact bar rendered below an AI response bubble when TtsPlayer.register()
+       is set and the user clicks "Speak". Always visible (not hover-gated like the
+       action toolbar) — the user should be able to control playback at any time. */
+    .ai-tts-player {
         display: flex;
         align-items: center;
-        gap: 0.3rem;
-        transition: border-color 0.15s, color 0.15s;
+        gap: 0.4rem;
+        background: var(--surface-card);
+        border: 1px solid var(--surface-border);
+        border-radius: 8px;
+        padding: 0.3rem 0.4rem 0.3rem 0.5rem;
+        align-self: flex-start;
+        max-width: 90%;
+        min-width: 180px;
+        margin-top: 0.25rem;
+        animation: ai-msg-in 0.2s ease;
+
+        &.ai-tts-loading {
+            gap: 0.5rem;
+        }
+    }
+
+    .ai-tts-spinner {
+        color: var(--primary-color);
+        font-size: 0.8rem;
+        flex-shrink: 0;
+    }
+
+    .ai-tts-loading-text {
+        font-size: 0.75rem;
+        color: var(--text-color-secondary);
+        flex: 1;
+    }
+
+    .ai-tts-play-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--primary-color);
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        padding: 0;
+        transition: background 0.15s;
 
         & .pi { font-size: 0.7rem; }
-        &:hover { border-color: var(--primary-color); color: var(--primary-color); }
+        &:hover { background: var(--primary-light); }
+    }
+
+    .ai-tts-progress-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+        flex: 1;
+        min-width: 80px;
+    }
+
+    .ai-tts-progress-bar {
+        height: 3px;
+        background: var(--surface-border);
+        border-radius: 2px;
+        overflow: hidden;
+        cursor: pointer;
+    }
+
+    .ai-tts-progress-fill {
+        height: 100%;
+        width: 0%;
+        background: var(--primary-color);
+        border-radius: 2px;
+        transition: width 0.1s linear;
+    }
+
+    .ai-tts-time {
+        display: flex;
+        gap: 0.1rem;
+        font-size: 0.6rem;
+        color: var(--text-color-secondary);
+    }
+
+    .ai-tts-close {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--text-color-secondary);
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        padding: 0;
+        opacity: 0.55;
+        transition: opacity 0.15s, background 0.15s;
+
+        & .pi { font-size: 0.6rem; }
+        &:hover { opacity: 1; background: color-mix(in srgb, var(--text-color-secondary) 12%, transparent); }
     }
 
     /* ─── Activity tab ───────────────────────────────── */
