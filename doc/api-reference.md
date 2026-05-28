@@ -236,6 +236,31 @@ Programmatically sends the current textarea value as a chat message.
 
 ---
 
+## setSystemPrompt
+
+### `setSystemPrompt(value)`
+
+Sets the AI system prompt programmatically. Equivalent to typing in the Config panel
+**Settings → AI System Prompt** textarea, but callable from code.
+
+```javascript
+PFTemplate.setSystemPrompt('You are a helpful assistant. Always reply in English.');
+
+// Clear it
+PFTemplate.setSystemPrompt('');
+```
+
+The value is persisted to `localStorage` (`pft-system-prompt`) and restored on the next
+page load. It is included as `msg.systemPrompt` in every subsequent `user_message` event
+fired by the chat input.
+
+Call `setSystemPrompt()` before the user sends any messages to ensure the first message
+already carries the intended context.
+
+→ Full usage guide with AI API examples: [multimodal-input-guide.md](multimodal-input-guide.md#using-the-system-prompt)
+
+---
+
 ## OutputActionRegistry
 
 ### `registerOutputAction(def)` / `OutputActionRegistry.register(def)`

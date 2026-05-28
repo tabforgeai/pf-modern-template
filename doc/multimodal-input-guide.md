@@ -33,6 +33,10 @@ When the user sends a message, the template fires:
   text:        "Summarize this report",
   timestamp:   "2026-05-27T10:03:19.925Z",
 
+  // System prompt set by the user in the Config panel (Settings → AI System Prompt).
+  // Empty string if not set. Prepend to your AI API call as the system role / context.
+  systemPrompt: "You are a helpful assistant. Always reply in English.",
+
   // Serializable metadata — safe for JSON.stringify, REST, SSE
   attachments: [
     {
@@ -425,6 +429,134 @@ PFTemplate.InputEventBus.on('user_message', function(msg) {
 ⟳  Uploading quarterly-report.pdf     [running → success]
 ✓  Analysis complete
 ```
+
+---
+
+## Using the System Prompt
+
+The user can type a system prompt in **Settings → AI System Prompt**. It is saved
+automatically and included as `msg.systemPrompt` in every `user_message` event.
+Your application decides how to use it — or ignore it entirely.
+
+`msg.systemPrompt` is always a string: non-empty if the user set one, `""` if not.
+Check before sending to avoid attaching an empty system message to AI API calls.
+
+### Pattern: prepend to an AI API call (JAX-RS)
+
+```java
+@Path("/api/chat")
+@RequestScoped
+public class ChatResource {
+
+    @Inject
+    private MyAIService aiService;
+
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.TEXT_PLAIN)
+    public Response chat(ChatRequest body) {
+        String reply = aiService.answer(body.getText(), body.getSystemPrompt());
+        return Response.ok(reply).build();
+    }
+}
+```
+
+```java
+public class ChatRequest {
+    private String text;
+    private String systemPrompt;
+    // getters + setters
+}
+```
+
+Frontend sends both fields:
+
+```javascript
+PFTemplate.InputEventBus.on('user_message', function(msg) {
+    fetch('/myapp/api/chat', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+            text:         msg.text,
+            systemPrompt: msg.systemPrompt   // "" if not set — backend handles it
+        })
+    })
+    .then(function(r) { return r.text(); })
+    .then(function(reply) { PFTemplate.aiPanel._stream(reply); });
+});
+```
+
+### Pattern: using with Anthropic Claude API (Java SDK)
+
+```java
+import com.anthropic.client.AnthropicClient;
+import com.anthropic.models.*;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+
+@ApplicationScoped
+public class MyAIService {
+
+    @Inject
+    private AnthropicClient client;   // configured via CDI producer
+
+    /**
+     * Send a user message to Claude with an optional system prompt.
+     *
+     * @param text         — the user's message text
+     * @param systemPrompt — from msg.systemPrompt; "" if the user left it blank
+     * @returns the assistant's reply as a plain string
+     */
+    public String answer(String text, String systemPrompt) {
+        var params = CreateMessageParams.builder()
+            .model("claude-sonnet-4-6")
+            .maxTokens(1024)
+            .messages(List.of(
+                MessageParam.ofUser(UserMessage.ofText(text))
+            ));
+
+        if (systemPrompt != null && !systemPrompt.isBlank()) {
+            params.system(systemPrompt);   // only set when non-empty
+        }
+
+        var response = client.messages().create(params.build());
+        return response.content().get(0).text().text();
+    }
+}
+```
+
+### Pattern: using with OpenAI-compatible APIs (Java)
+
+```java
+public String answer(String text, String systemPrompt) {
+    var messages = new ArrayList<ChatMessage>();
+
+    if (systemPrompt != null && !systemPrompt.isBlank()) {
+        messages.add(new ChatMessage("system", systemPrompt));
+    }
+    messages.add(new ChatMessage("user", text));
+
+    var request = ChatCompletionRequest.builder()
+        .model("gpt-4o")
+        .messages(messages)
+        .build();
+
+    return openAiService.createChatCompletion(request)
+        .getChoices().get(0).getMessage().getContent();
+}
+```
+
+### Tip: log it during development
+
+```javascript
+PFTemplate.InputEventBus.on('user_message', function(msg) {
+    console.log('text:',         msg.text);
+    console.log('systemPrompt:', msg.systemPrompt);   // "" if not set
+    console.log('attachments:',  msg.attachments.length);
+});
+```
+
+Register this handler, set a system prompt in Settings, send a chat message — all three fields appear in the console.
 
 ---
 
