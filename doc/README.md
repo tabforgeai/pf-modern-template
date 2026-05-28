@@ -7,6 +7,7 @@
 | [Event Reference](event-reference.md) | Complete event model — all fields, types, and status values |
 | [Integration Guide](integration-guide.md) | How to connect a real backend (SSE, WebSocket, direct JS) |
 | [Multimodal Input Guide](multimodal-input-guide.md) | Receiving user messages with text and file attachments |
+| [Output Actions Guide](output-actions-guide.md) | Custom action buttons on AI responses; TTS Player integration |
 | [Plugin Guide](plugin-guide.md) | Creating and registering custom event type plugins |
 | [API Reference](api-reference.md) | Full JavaScript public API |
 

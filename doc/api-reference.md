@@ -236,6 +236,74 @@ Programmatically sends the current textarea value as a chat message.
 
 ---
 
+## OutputActionRegistry
+
+### `registerOutputAction(def)` / `OutputActionRegistry.register(def)`
+
+Registers a custom button in the action toolbar shown below every AI response.
+
+```javascript
+PFTemplate.registerOutputAction({
+    type:    'translate',       // unique ID — not shown to user
+    icon:    'pi-language',     // PrimeIcons class without the 'pi ' prefix
+    title:   'Translate',       // button label and tooltip
+    handler: function(text, msgEl) {
+        // text   — plain-text content of the AI response (no HTML, no markdown syntax)
+        // msgEl  — the .ai-message-assistant wrapper element for this response
+        myApp.translate(text);
+    }
+});
+```
+
+Buttons appear on every **new** response after registration, to the right of the built-in
+Retry and Copy buttons. Responses already rendered on screen are not affected.
+
+### `OutputActionRegistry.getAll()`
+
+Returns a snapshot of all registered action definitions. Primarily used internally by the
+toolbar builder, but available for inspection.
+
+```javascript
+PFTemplate.OutputActionRegistry.getAll();
+// → [{ type, icon, title, handler }, ...]
+```
+
+---
+
+## TtsPlayer
+
+Controls the built-in TTS audio player bar.
+
+### `TtsPlayer.register(fn)`
+
+Registers an async TTS provider function. Once called, every new AI response gains a
+**Speak** button in the action toolbar.
+
+```javascript
+PFTemplate.TtsPlayer.register(async function(text) {
+    var resp = await fetch('/api/tts', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ text: text })
+    });
+    return await resp.blob();     // Blob (MP3, WAV, OGG) — or return a URL string
+});
+```
+
+When the user clicks Speak, the template:
+1. Shows a loading spinner while the function runs
+2. Receives the Blob or URL
+3. Renders a compact player bar: `▶/⏸ · progress · 0:08 / 0:45 · ×`
+4. Starts playback automatically
+
+If the function throws, the spinner disappears silently.
+
+Only one message plays at a time — clicking Speak on a second message stops the first.
+
+→ Step-by-step guide with Jakarta EE backend examples: [output-actions-guide.md](output-actions-guide.md)
+
+---
+
 ## Layout helpers
 
 ```javascript

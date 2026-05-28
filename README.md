@@ -52,7 +52,8 @@ The template does not know — and does not care — whether the events come fro
 - **Chat UI** with typewriter streaming animation
 - **Markdown rendering** via marked.js — headings, lists, code blocks, blockquotes
 - **Code block copy** button (hover to reveal, clipboard API)
-- **Retry** button on every assistant response
+- **Output action toolbar** on every response — built-in Retry + Copy, plus app-registered custom buttons
+- **TTS Player** — register a provider function; users get a Speak button and compact audio player
 - **Voice input** via Web Speech API (Chrome/Edge; hidden automatically if unsupported)
 - AI status dot: idle / thinking / error — reflected in status bar
 
@@ -298,6 +299,46 @@ The template collects the input. Your application decides what to do with it.
 
 → Full integration guide with worked examples: [doc/multimodal-input-guide.md](doc/multimodal-input-guide.md)
 
+## AI Response Actions
+
+Every completed AI response has an action toolbar. Two buttons are always there — **Retry**
+and **Copy**. Your application can extend the toolbar and add a voice playback player with
+just a few lines of JavaScript.
+
+**Output Action Toolbar**
+
+Register one or more custom buttons. Each button receives the plain-text response content
+when clicked — no HTML, no markdown syntax:
+
+```javascript
+PFTemplate.registerOutputAction({
+    type:    'translate',
+    icon:    'pi-language',
+    title:   'Translate',
+    handler: function(text) { myApp.translate(text); }
+});
+```
+
+The button appears immediately to the right of Copy on every new response.
+
+**TTS Player**
+
+Register an async provider function that calls your TTS backend and returns audio.
+The template adds a Speak button and renders a compact player bar (play/pause · progress · seek · close):
+
+```javascript
+PFTemplate.TtsPlayer.register(async function(text) {
+    var resp = await fetch('/api/tts', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ text: text })
+    });
+    return await resp.blob();   // Blob or URL string — template handles playback
+});
+```
+
+→ Step-by-step guide with Jakarta EE backend examples: [doc/output-actions-guide.md](doc/output-actions-guide.md)
+
 ## Roadmap
 
 - [x] Phase 1 — Layout structure (topbar, sidebar, main, footer, status bar)
@@ -306,7 +347,11 @@ The template collects the input. Your application decides what to do with it.
 - [x] Phase 4 — AI Assistant Panel (chat, markdown, voice input, retry)
 - [x] Phase 5 — AI Agent Activity Panel (generic event stream, timeline UI, task graph, replay, plugin API)
 - [x] Phase 5b — Multimodal Input (drag-drop, clipboard paste, file/image picker, InputEventBus)
-- [ ] Phase 6 — Demo pages (dashboard, login, error, 404)
+- [x] Phase 6a — Output Action Toolbar (custom response buttons, OutputActionRegistry)
+- [x] Phase 6b — TTS Player (compact audio player, app-registered provider)
+- [ ] Phase 6c — System Prompt (configurable system context in config panel)
+- [ ] Phase 6d — Message Feedback (thumbs up/down, message_feedback event on InputEventBus)
+- [ ] Phase 7 — Demo pages (dashboard, login, error, 404)
 
 ## License
 
