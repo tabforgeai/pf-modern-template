@@ -89,6 +89,25 @@
                 </div>
 
             </h:form>
+
+            <!-- System Prompt — client-side only, no JSF lifecycle -->
+            <div class="layout-config-section">
+                <div class="config-system-prompt-header">
+                    <span class="section-name" style="margin-bottom:0">AI System Prompt</span>
+                    <button type="button"
+                            class="config-system-prompt-clear"
+                            onclick="PFTemplate.setSystemPrompt(''); document.getElementById('config-system-prompt').value=''">
+                        Clear
+                    </button>
+                </div>
+                <textarea id="config-system-prompt"
+                          class="config-system-prompt-input"
+                          rows="5"
+                          placeholder="Instructions sent to the AI with every message…"
+                          oninput="PFTemplate.setSystemPrompt(this.value)"></textarea>
+                <p class="config-system-prompt-hint">Saved automatically. Included in every message sent to the AI.</p>
+            </div>
+
         </div>
     </div>
 

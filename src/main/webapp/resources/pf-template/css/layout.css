@@ -2151,6 +2151,57 @@
         background: #ffffff;
     }
 
+    /* ─── System Prompt (Config panel) ──────────────────── */
+
+    .config-system-prompt-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.6rem;
+    }
+
+    .config-system-prompt-input {
+        width: 100%;
+        resize: vertical;
+        min-height: 80px;
+        max-height: 200px;
+        border: 1px solid var(--surface-border);
+        border-radius: 6px;
+        background: var(--surface-ground);
+        color: var(--text-color);
+        font-size: 0.8rem;
+        font-family: inherit;
+        line-height: 1.5;
+        padding: 0.5rem 0.65rem;
+        outline: none;
+        transition: border-color 0.15s;
+        box-sizing: border-box;
+
+        &:focus { border-color: var(--primary-color); }
+        &::placeholder { color: var(--text-color-secondary); opacity: 0.7; }
+    }
+
+    .config-system-prompt-hint {
+        margin: 0.35rem 0 0;
+        font-size: 0.7rem;
+        color: var(--text-color-secondary);
+        opacity: 0.7;
+    }
+
+    .config-system-prompt-clear {
+        background: none;
+        border: 1px solid var(--surface-border);
+        border-radius: 5px;
+        color: var(--text-color-secondary);
+        font-size: 0.7rem;
+        padding: 0.15rem 0.5rem;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: border-color 0.15s, color 0.15s;
+
+        &:hover { border-color: var(--primary-color); color: var(--primary-color); }
+    }
+
     /* ─── Responsive ──────────────────────────────────── */
 
     @media (max-width: 991px) {
