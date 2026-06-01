@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:f="jakarta.faces.core"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:pt="jakarta.faces.passthrough"
+      data-theme="#{guestPreferences.theme}">
+
+<h:head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign In &#8212; PF Modern</title>
+
+    <!-- Restore saved theme before first paint to prevent flash -->
+    <script>
+        (function () {
+            var t = localStorage.getItem('pft-theme');
+            var valid = ['light', 'dark', 'dim'];
+            if (t &amp;&amp; valid.indexOf(t) !== -1) {
+                document.documentElement.dataset.theme = t;
+                if (t === 'dark' || t === 'dim') {
+                    document.documentElement.classList.add('p-dark');
+                }
+            }
+        }());
+    </script>
+
+    <h:outputStylesheet name="css/layout-variables.css" library="pf-template" />
+    <h:outputStylesheet name="css/login.css"            library="pf-template" />
+
+    <!-- Background image URL resolved via JSF resource API -->
+    <style>
+        .login-image-panel {
+            background-image: url('#{resource["pf-template:images/login_3.png"]}');
+        }
+    </style>
+</h:head>
+
+<h:body styleClass="login-body">
+
+    <div class="login-container">
+
+        <!-- Left panel: background image with overlay quote -->
+        <div class="login-image-panel" aria-hidden="true">
+            <div class="login-image-overlay">
+                <div class="login-image-quote">
+                    <p class="login-quote-text">Modern enterprise UI,<br />powered by PrimeFaces.</p>
+                    <p class="login-quote-sub">Jakarta EE 11 &#183; Java 21 &#183; Open Source</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right panel: login form -->
+        <div class="login-form-panel">
+            <div class="login-card">
+
+                <a href="#{request.contextPath}/index.xhtml" class="login-logo">
+                    <h:graphicImage library="pf-template" name="images/logo.png"
+                                    styleClass="login-logo-img" alt="Logo" />
+                    <span class="login-logo-text">PF Modern</span>
+                </a>
+
+                <h1 class="login-title">Welcome back</h1>
+                <p class="login-subtitle">Sign in to your account to continue.</p>
+
+                <h:form id="loginForm" styleClass="login-form">
+
+                    <h:messages layout="list"
+                                styleClass="login-messages"
+                                errorClass="login-error-msg"
+                                showSummary="true"
+                                showDetail="false" />
+
+                    <div class="login-field">
+                        <label for="loginForm:email" class="login-label">Email</label>
+                        <h:inputText id="email"
+                                     value="#{loginBean.username}"
+                                     styleClass="login-input"
+                                     pt:placeholder="name@example.com"
+                                     pt:autocomplete="username"
+                                     required="true"
+                                     requiredMessage="Email is required." />
+                    </div>
+
+                    <div class="login-field">
+                        <label for="loginForm:password" class="login-label">Password</label>
+                        <h:inputSecret id="password"
+                                       value="#{loginBean.password}"
+                                       styleClass="login-input"
+                                       pt:placeholder="Your password"
+                                       pt:autocomplete="current-password"
+                                       required="true"
+                                       requiredMessage="Password is required." />
+                    </div>
+
+                    <div class="login-options">
+                        <label class="login-remember">
+                            <input type="checkbox" class="login-checkbox" />
+                            <span>Remember me</span>
+                        </label>
+                        <a href="#" class="login-forgot">Forgot password?</a>
+                    </div>
+
+                    <p:commandButton value="Sign In"
+                                     action="#{loginBean.login}"
+                                     styleClass="login-btn"
+                                     icon="pi pi-sign-in"
+                                     iconPos="right"
+                                     ajax="false" />
+
+                    <p class="login-demo-hint">Demo: use any email and password.</p>
+
+                </h:form>
+
+                <p class="login-brand">
+                    Powered by
+                    <a href="https://github.com/tabforgeai"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="login-brand-link">Tabforge AI</a>
+                </p>
+
+            </div>
+        </div>
+
+    </div>
+
+</h:body>
+</html>

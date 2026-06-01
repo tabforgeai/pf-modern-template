@@ -6,7 +6,7 @@
       <modelVersion>4.0.0</modelVersion>
       <groupId>ai.tabforge</groupId>
       <artifactId>pf-modern-template</artifactId>
-      <version>1.0.0-SNAPSHOT</version>
+      <version>1.0.0</version>
       <packaging>war</packaging>
 
       <properties>
@@ -42,6 +42,19 @@
                   <groupId>org.apache.maven.plugins</groupId>
                   <artifactId>maven-war-plugin</artifactId>
                   <version>3.4.0</version>
+              </plugin>
+
+              <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-assembly-plugin</artifactId>
+                  <version>3.7.1</version>
+                  <configuration>
+                      <finalName>pf-modern-template-${project.version}</finalName>
+                      <descriptors>
+                          <descriptor>src/assemble/layout.xml</descriptor>
+                      </descriptors>
+                      <appendAssemblyId>true</appendAssemblyId>
+                  </configuration>
               </plugin>
           </plugins>
       </build>

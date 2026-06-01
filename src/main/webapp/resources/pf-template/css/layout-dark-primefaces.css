@@ -1,0 +1,419 @@
+/* =====================================================
+   PF Modern Template — PrimeFaces Dark/Dim Overrides
+   -----------------------------------------------------
+   Recolors stock PrimeFaces components (saga-blue and
+   other light classic themes) for the template's dark
+   and dim modes, using the template's own CSS variables.
+
+   WHY THIS FILE IS UNLAYERED:
+   layout.css uses @layer; the PrimeFaces theme is
+   unlayered and therefore wins over layered rules.
+   To override it reliably these rules must also be
+   unlayered AND carry higher specificity. The
+   :is([data-theme="dark"], [data-theme="dim"]) prefix
+   adds one attribute-level specificity point over the
+   equivalent stock theme rule, so our colors win without
+   needing !important in most cases.
+
+   Load this AFTER layout.css. It is a no-op in light mode.
+   ===================================================== */
+
+/* ─────────────────────────────────────────────────────
+   Foundation — shared PrimeFaces widget surfaces
+   Covers many components at once (panels, content areas).
+   ───────────────────────────────────────────────────── */
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-widget-content {
+    background: var(--surface-card);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-widget-header {
+    background: var(--surface-overlay);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-widget,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-widget * {
+    color: inherit;
+}
+
+/* =====================================================
+   TIER 1 — Core
+   ===================================================== */
+
+/* ─── Card ─────────────────────────────────────────── */
+:is([data-theme="dark"], [data-theme="dim"]) .ui-card {
+    background: var(--surface-card);
+    color: var(--text-color);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-card .ui-card-subtitle {
+    color: var(--text-color-secondary);
+}
+
+/* ─── Panel ────────────────────────────────────────── */
+:is([data-theme="dark"], [data-theme="dim"]) .ui-panel .ui-panel-titlebar,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-panel .ui-panel-header {
+    background: var(--surface-overlay);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-panel .ui-panel-content {
+    background: var(--surface-card);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+
+/* ─── DataTable ────────────────────────────────────── */
+:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-header,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-footer {
+    background: var(--surface-overlay);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable thead th,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-thead > tr > th {
+    background: var(--surface-overlay);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable tbody td,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-data > tr > td {
+    background: var(--surface-card);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+
+/* zebra striping */
+:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-data > tr.ui-datatable-even,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-data > tr.ui-datatable-even > td {
+    background: var(--surface-ground);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-data > tr.ui-state-highlight,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-data > tr.ui-state-highlight > td {
+    background: color-mix(in srgb, var(--primary-color) 28%, var(--surface-card));
+    color: var(--text-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-data > tr.ui-state-hover,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-data > tr.ui-state-hover > td {
+    background: color-mix(in srgb, var(--primary-color) 14%, var(--surface-card));
+}
+
+/* ─── Paginator ────────────────────────────────────── */
+:is([data-theme="dark"], [data-theme="dim"]) .ui-paginator {
+    background: var(--surface-overlay);
+    border-color: var(--surface-border);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-paginator .ui-paginator-page,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-paginator .ui-paginator-next,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-paginator .ui-paginator-prev,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-paginator .ui-paginator-first,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-paginator .ui-paginator-last {
+    color: var(--text-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-paginator .ui-paginator-page.ui-state-active {
+    background: var(--primary-color);
+    color: var(--primary-color-text);
+}
+
+/* ─── InputText / Textarea ─────────────────────────── */
+:is([data-theme="dark"], [data-theme="dim"]) .ui-inputtext,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-inputtextarea {
+    background: var(--surface-ground);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-inputtext:enabled:focus,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-inputtextarea:enabled:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--primary-color) 30%, transparent);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-inputtext::placeholder {
+    color: var(--text-color-muted);
+}
+
+/* ─── Buttons (secondary / outlined / text only) ───── */
+:is([data-theme="dark"], [data-theme="dim"]) .ui-button.ui-button-secondary:not(.ui-state-active),
+:is([data-theme="dark"], [data-theme="dim"]) .ui-button.ui-secondary-button {
+    background: var(--surface-overlay);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-button.ui-button-outlined,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-button.ui-button-text {
+    background: transparent;
+    color: var(--primary-color);
+}
+
+/* ─── Dropdown / SelectOneMenu ─────────────────────── */
+:is([data-theme="dark"], [data-theme="dim"]) .ui-selectonemenu {
+    background: var(--surface-ground);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-selectonemenu .ui-selectonemenu-label {
+    color: var(--text-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-selectonemenu-panel,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-selectcheckboxmenu-panel {
+    background: var(--surface-overlay);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-selectonemenu-items .ui-selectonemenu-item:not(.ui-state-highlight):hover {
+    background: color-mix(in srgb, var(--primary-color) 14%, var(--surface-overlay));
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-selectonemenu-items .ui-selectonemenu-item.ui-state-highlight {
+    background: var(--primary-color);
+    color: var(--primary-color-text);
+}
+
+/* =====================================================
+   TIER 2 — Very common
+   ===================================================== */
+
+/* ─── Dialog ───────────────────────────────────────── */
+:is([data-theme="dark"], [data-theme="dim"]) .ui-dialog,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-dialog .ui-dialog-content {
+    background: var(--surface-card);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-dialog .ui-dialog-titlebar {
+    background: var(--surface-overlay);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-dialog .ui-dialog-footer {
+    background: var(--surface-overlay);
+    border-color: var(--surface-border);
+}
+
+/* ─── Menu / Menubar / TieredMenu ──────────────────── */
+:is([data-theme="dark"], [data-theme="dim"]) .ui-menu,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-menubar,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-tieredmenu,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-contextmenu {
+    background: var(--surface-overlay);
+    border-color: var(--surface-border);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-menuitem-link {
+    color: var(--text-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-menuitem-link:hover {
+    background: color-mix(in srgb, var(--primary-color) 14%, var(--surface-overlay));
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-menuitem-link .ui-menuitem-text,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-menuitem-link .ui-menuitem-icon {
+    color: inherit;
+}
+
+/* ─── TabView ──────────────────────────────────────── */
+:is([data-theme="dark"], [data-theme="dim"]) .ui-tabs .ui-tabs-nav {
+    background: var(--surface-overlay);
+    border-color: var(--surface-border);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-tabs .ui-tabs-nav li {
+    background: transparent;
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-tabs .ui-tabs-nav li a {
+    color: var(--text-color-secondary);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-tabs .ui-tabs-nav li.ui-state-active {
+    background: var(--surface-card);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-tabs .ui-tabs-nav li.ui-state-active a {
+    color: var(--primary-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-tabs .ui-tabs-panel {
+    background: var(--surface-card);
+    color: var(--text-color);
+}
+
+/* ─── Accordion ────────────────────────────────────── */
+:is([data-theme="dark"], [data-theme="dim"]) .ui-accordion .ui-accordion-header {
+    background: var(--surface-overlay);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-accordion .ui-accordion-header.ui-state-active {
+    background: color-mix(in srgb, var(--primary-color) 18%, var(--surface-overlay));
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-accordion .ui-accordion-content {
+    background: var(--surface-card);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+
+/* ─── Fieldset ─────────────────────────────────────── */
+:is([data-theme="dark"], [data-theme="dim"]) .ui-fieldset {
+    background: var(--surface-card);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-fieldset .ui-fieldset-legend {
+    background: var(--surface-overlay);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+
+/* ─── Checkbox / RadioButton ───────────────────────── */
+:is([data-theme="dark"], [data-theme="dim"]) .ui-chkbox-box,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-radiobutton-box {
+    background: var(--surface-ground);
+    border-color: var(--surface-border);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-chkbox-box.ui-state-active,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-radiobutton-box.ui-state-active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: var(--primary-color-text);
+}
+
+/* ─── Messages / Growl ─────────────────────────────── */
+:is([data-theme="dark"], [data-theme="dim"]) .ui-messages,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-message {
+    border-color: var(--surface-border);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-growl-item {
+    background: var(--surface-overlay);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+
+/* ─── Calendar / DatePicker ────────────────────────── */
+:is([data-theme="dark"], [data-theme="dim"]) .ui-datepicker {
+    background: var(--surface-overlay);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-datepicker .ui-datepicker-header {
+    background: var(--surface-card);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-datepicker td > a,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-datepicker td > span {
+    color: var(--text-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-datepicker td > a.ui-state-active {
+    background: var(--primary-color);
+    color: var(--primary-color-text);
+}
+
+/* =====================================================
+   TIER 3 — On demand
+   ===================================================== */
+
+/* ─── OverlayPanel ─────────────────────────────────── */
+:is([data-theme="dark"], [data-theme="dim"]) .ui-overlaypanel {
+    background: var(--surface-overlay);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-overlaypanel .ui-overlaypanel-content {
+    color: var(--text-color);
+}
+
+/* ─── ConfirmDialog ────────────────────────────────── */
+:is([data-theme="dark"], [data-theme="dim"]) .ui-confirmdialog .ui-dialog-content {
+    background: var(--surface-card);
+    color: var(--text-color);
+}
+
+/* ─── Toolbar ──────────────────────────────────────── */
+:is([data-theme="dark"], [data-theme="dim"]) .ui-toolbar {
+    background: var(--surface-overlay);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+
+/* ─── PickList / OrderList ─────────────────────────── */
+:is([data-theme="dark"], [data-theme="dim"]) .ui-picklist .ui-picklist-list,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-orderlist .ui-orderlist-list {
+    background: var(--surface-card);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-picklist .ui-picklist-item,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-orderlist .ui-orderlist-item {
+    color: var(--text-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-picklist .ui-picklist-item.ui-state-highlight,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-orderlist .ui-orderlist-item.ui-state-highlight {
+    background: var(--primary-color);
+    color: var(--primary-color-text);
+}
+
+/* ─── Tree / TreeTable ─────────────────────────────── */
+:is([data-theme="dark"], [data-theme="dim"]) .ui-tree,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-treetable {
+    background: var(--surface-card);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-treenode-content .ui-treenode-label.ui-state-highlight,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-treetable tbody td.ui-state-highlight {
+    background: var(--primary-color);
+    color: var(--primary-color-text);
+}
+
+/* ─── AutoComplete ─────────────────────────────────── */
+:is([data-theme="dark"], [data-theme="dim"]) .ui-autocomplete-panel {
+    background: var(--surface-overlay);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-autocomplete-items .ui-autocomplete-item:hover {
+    background: color-mix(in srgb, var(--primary-color) 14%, var(--surface-overlay));
+}
+
+/* ─── InputSwitch / ToggleSwitch ───────────────────── */
+:is([data-theme="dark"], [data-theme="dim"]) .ui-inputswitch .ui-inputswitch-slider {
+    background: var(--surface-border);
+}
+
+:is([data-theme="dark"], [data-theme="dim"]) .ui-inputswitch.ui-inputswitch-checked .ui-inputswitch-slider {
+    background: var(--primary-color);
+}

@@ -25,13 +25,19 @@
             var valid = ['light', 'dark', 'dim'];
             if (t &amp;&amp; valid.indexOf(t) !== -1) {
                 document.documentElement.dataset.theme = t;
+                // Keep PrimeFaces components in sync (dark/dim → PF dark mode)
+                if (t === 'dark' || t === 'dim') {
+                    document.documentElement.classList.add('p-dark');
+                }
             }
         }());
     </script>
 
     <!-- CSS in <head> — no Flash of Unstyled Content -->
-    <h:outputStylesheet name="css/layout-variables.css" library="pf-template" />
-    <h:outputStylesheet name="css/layout.css"          library="pf-template" />
+    <h:outputStylesheet name="css/layout-variables.css"       library="pf-template" />
+    <h:outputStylesheet name="css/layout.css"                 library="pf-template" />
+    <!-- Recolors stock PrimeFaces components for dark/dim modes; no-op in light -->
+    <h:outputStylesheet name="css/layout-dark-primefaces.css" library="pf-template" />
 
     <!-- JS with defer — does not block HTML parsing -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer="defer"></script>
@@ -52,9 +58,9 @@
         <!-- Forces PrimeFaces to load all its resources (primeicons, primeflex, etc.) -->
         <p:growl id="growl" />
 
-        <ui:include src="/WEB-INF/topbar.xhtml" />
+        <ui:include src="./topbar.xhtml" />
 
-        <ui:include src="/WEB-INF/menu.xhtml" />
+        <ui:include src="./menu.xhtml" />
 
         <div class="layout-main-container">
 
@@ -68,7 +74,7 @@
                 </ui:insert>
             </div>
 
-            <ui:include src="/WEB-INF/footer.xhtml" />
+            <ui:include src="./footer.xhtml" />
 
         </div>
 
@@ -244,7 +250,7 @@
             </div>
         </div>
 
-        <ui:include src="/WEB-INF/config.xhtml" />
+        <ui:include src="./config.xhtml" />
 
         <!-- Command Palette — Ctrl+K -->
         <div id="command-palette"

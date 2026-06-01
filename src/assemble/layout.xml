@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/2.2.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.2.0
+          https://maven.apache.org/xsd/assembly-2.2.0.xsd">
+
+    <id>layout</id>
+
+    <formats>
+        <format>zip</format>
+    </formats>
+
+    <!-- ZIP root maps directly to src/main/webapp/ in the target project -->
+    <includeBaseDirectory>false</includeBaseDirectory>
+
+    <fileSets>
+
+        <!-- XHTML templates → WEB-INF/pf-modern-template/ -->
+        <fileSet>
+            <directory>src/main/webapp/WEB-INF</directory>
+            <includes>
+                <include>template.xhtml</include>
+                <include>topbar.xhtml</include>
+                <include>footer.xhtml</include>
+                <include>config.xhtml</include>
+                <include>menu.xhtml</include>
+                <include>breadcrumb.xhtml</include>
+            </includes>
+            <outputDirectory>WEB-INF/pf-modern-template</outputDirectory>
+        </fileSet>
+
+        <!-- Static resources → resources/pf-template/ -->
+        <fileSet>
+            <directory>src/main/webapp/resources/pf-template</directory>
+            <outputDirectory>resources/pf-template</outputDirectory>
+        </fileSet>
+
+        <!-- Standalone pages → ZIP root (webapp root in target project) -->
+        <fileSet>
+            <directory>src/main/webapp</directory>
+            <includes>
+                <include>login.xhtml</include>
+            </includes>
+            <outputDirectory></outputDirectory>
+        </fileSet>
+
+        <!-- Java beans → java/ (developer copies to src/main/java/) -->
+        <fileSet>
+            <directory>src/main/java</directory>
+            <includes>
+                <include>ai/tabforge/pagetemplate/bean/*.java</include>
+            </includes>
+            <outputDirectory>java</outputDirectory>
+        </fileSet>
+
+    </fileSets>
+
+</assembly>

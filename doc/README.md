@@ -4,6 +4,7 @@
 
 | Document | Description |
 |----------|-------------|
+| [Installation Guide](installation-guide.md) | How to add the template to your existing Jakarta EE application |
 | [Event Reference](event-reference.md) | Complete event model — all fields, types, and status values |
 | [Integration Guide](integration-guide.md) | How to connect a real backend (SSE, WebSocket, direct JS) |
 | [Multimodal Input Guide](multimodal-input-guide.md) | Receiving user messages with text and file attachments |

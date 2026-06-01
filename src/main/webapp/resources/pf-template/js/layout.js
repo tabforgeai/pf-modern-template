@@ -6,8 +6,21 @@ const PFTemplate = (() => {
 
     const THEMES = ['light', 'dark', 'dim'];
 
+    // PrimeFaces 15 "styled mode" themes switch to dark via this class on <html>.
+    // Both our 'dark' and 'dim' themes map to PrimeFaces dark mode so that
+    // PrimeFaces components (cards, tables, inputs) follow the template theme.
+    // If your PrimeFaces theme uses a different dark-mode selector, change it here.
+    const PF_DARK_CLASS = 'p-dark';
+
+    // Keeps PrimeFaces component theming in sync with the template theme.
+    function syncPrimeFacesDark(name) {
+        const dark = (name === 'dark' || name === 'dim');
+        document.documentElement.classList.toggle(PF_DARK_CLASS, dark);
+    }
+
     function setTheme(name) {
         document.documentElement.dataset.theme = name;
+        syncPrimeFacesDark(name);
         localStorage.setItem('pft-theme', name);
         // Phase 2: persist to server-side GuestPreferencesBean via Ajax
     }
@@ -23,6 +36,7 @@ const PFTemplate = (() => {
         const saved = localStorage.getItem('pft-theme');
         if (saved && THEMES.includes(saved)) {
             document.documentElement.dataset.theme = saved;
+            syncPrimeFacesDark(saved);
         }
     }
 
@@ -107,6 +121,36 @@ const PFTemplate = (() => {
         if (saved === '1') setRtl(true);
     }
 
+    // ─── System Prompt ────────────────────────────────────
+    // Stored in localStorage. Restored to the Config panel textarea on DOMContentLoaded.
+    // Included as `systemPrompt` in every user_message event so the app can prepend it
+    // to the AI context without the template needing to know the AI provider or format.
+
+    let _systemPrompt = '';
+
+    /**
+     * Set and persist the system prompt.
+     * Called by the Config panel textarea's oninput handler and by app code.
+     *
+     * @param {string} value — new system prompt text. Pass '' to clear.
+     * @called-from config.xhtml oninput; app code via PFTemplate.setSystemPrompt().
+     * @returns {void}
+     */
+    function setSystemPrompt(value) {
+        _systemPrompt = value || '';
+        localStorage.setItem('pft-system-prompt', _systemPrompt);
+    }
+
+    /** Restore system prompt from localStorage and populate the Config panel textarea. */
+    function restoreSystemPrompt() {
+        const saved = localStorage.getItem('pft-system-prompt');
+        if (saved) {
+            _systemPrompt = saved;
+            const el = document.getElementById('config-system-prompt');
+            if (el) el.value = saved;
+        }
+    }
+
     // ─── AI Panel ─────────────────────────────────────────
 
     function toggleAiPanel() {
@@ -136,6 +180,7 @@ const PFTemplate = (() => {
         voiceBtn: null,
         isStreaming: false,
         lastUserText: '',
+        _msgCounter: 0,
 
         init() {
             this.messagesEl = document.getElementById('ai-panel-messages');
@@ -205,7 +250,7 @@ const PFTemplate = (() => {
             // user message payload. The template emits; the app decides what to do.
             // event.attachments = serializable metadata (safe for JSON.stringify / SSE).
             // event.files       = native File objects (usable with FormData/fetch; not JSON-safe).
-            InputEventBus.emit({ type: 'user_message', text, attachments, files: files, timestamp: new Date().toISOString() });
+            InputEventBus.emit({ type: 'user_message', text, attachments, files: files, systemPrompt: _systemPrompt, timestamp: new Date().toISOString() });
 
             MultimodalInput.clear();
 
@@ -262,7 +307,8 @@ const PFTemplate = (() => {
 
             const wrapper = document.createElement('div');
             wrapper.className = 'ai-message ai-message-assistant';
-            wrapper.innerHTML = `<span class="ai-message-label">AI Assistant</span><div class="ai-stream-bubble"><span class="ai-stream-text"></span><span class="ai-stream-cursor">▋</span></div>`;
+            wrapper.dataset.messageId = 'msg-' + (this._msgCounter++);
+            wrapper.innerHTML = '<span class="ai-message-label">AI Assistant</span><div class="ai-stream-bubble"><span class="ai-stream-text"></span><span class="ai-stream-cursor">▋</span></div>';
             this.messagesEl.appendChild(wrapper);
             this._scrollBottom();
 
@@ -294,7 +340,7 @@ const PFTemplate = (() => {
                 streamBubble.replaceWith(bubble);
                 this._addCopyButtons(bubble);
             }
-            this._addRetryBtn(wrapper);
+            this._addActionToolbar(wrapper, rawText);
             this._scrollBottom();
         },
 
@@ -314,15 +360,75 @@ const PFTemplate = (() => {
             });
         },
 
-        _addRetryBtn(wrapper) {
-            const btn = document.createElement('button');
-            btn.className = 'ai-retry-btn';
-            btn.innerHTML = '<i class="pi pi-refresh"></i> Retry';
-            btn.addEventListener('click', () => {
+        /**
+         * Build and append the action toolbar below a completed AI response.
+         *
+         * Renders two built-in buttons (Retry, Copy) followed by any actions
+         * registered via OutputActionRegistry. Analogous to a context toolbar in
+         * an IDE (IntelliJ's "intention actions" row under a suggestion).
+         *
+         * The toolbar fades in on hover of the parent .ai-message-assistant element
+         * via CSS — no JS hover handling needed.
+         *
+         * @param {HTMLElement} wrapper — the .ai-message-assistant div that holds the response.
+         *   The toolbar is appended as the last child.
+         * @param {string} rawText — the plain-text content of the response, passed as-is
+         *   to OutputActionRegistry handlers so they can work with the raw string
+         *   (no HTML entities, no markdown syntax).
+         *
+         * @called-from _finalizeAssistantMsg(), after markdown rendering and code-copy buttons
+         *   have been applied to the bubble.
+         * @returns {void}
+         */
+        _addActionToolbar(wrapper, rawText) {
+            const toolbar = document.createElement('div');
+            toolbar.className = 'ai-message-actions';
+
+            // ── Retry (built-in) ──────────────────────────────
+            const retryBtn = document.createElement('button');
+            retryBtn.className = 'ai-action-btn';
+            retryBtn.title = 'Retry';
+            retryBtn.innerHTML = '<i class="pi pi-refresh"></i><span>Retry</span>';
+            retryBtn.addEventListener('click', () => {
                 wrapper.remove();
                 this._stream(this._demoResponse(this.lastUserText));
             });
-            wrapper.appendChild(btn);
+            toolbar.appendChild(retryBtn);
+
+            // ── Copy message text (built-in) ──────────────────
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'ai-action-btn';
+            copyBtn.title = 'Copy message';
+            copyBtn.innerHTML = '<i class="pi pi-copy"></i><span>Copy</span>';
+            copyBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(rawText).then(() => {
+                    copyBtn.querySelector('span').textContent = 'Copied!';
+                    setTimeout(() => { copyBtn.querySelector('span').textContent = 'Copy'; }, 2000);
+                });
+            });
+            toolbar.appendChild(copyBtn);
+
+            // ── Speak / TTS (built-in, shown only when a handler is registered) ──
+            if (TtsPlayer._handler) {
+                const speakBtn = document.createElement('button');
+                speakBtn.className = 'ai-action-btn';
+                speakBtn.title = 'Speak';
+                speakBtn.innerHTML = '<i class="pi pi-volume-up"></i><span>Speak</span>';
+                speakBtn.addEventListener('click', () => TtsPlayer._speak(rawText, wrapper));
+                toolbar.appendChild(speakBtn);
+            }
+
+            // ── Registered output actions (app-provided) ──────
+            OutputActionRegistry.getAll().forEach(function(action) {
+                const btn = document.createElement('button');
+                btn.className = 'ai-action-btn';
+                btn.title = action.title;
+                btn.innerHTML = '<i class="pi ' + action.icon + '"></i><span>' + action.title + '</span>';
+                btn.addEventListener('click', function() { action.handler(rawText, wrapper); });
+                toolbar.appendChild(btn);
+            });
+
+            wrapper.appendChild(toolbar);
         },
 
         _initVoice() {
@@ -868,6 +974,229 @@ const PFTemplate = (() => {
         PluginRegistry.register(descriptor);
     }
 
+    // ─── Output Action Registry ───────────────────────────
+    //
+    // Manages custom action buttons rendered below every AI response in the chat.
+    // Applications use registerOutputAction() to add domain-specific actions:
+    // translation, TTS, email, create-task, etc.
+    //
+    // Two built-in actions (Retry, Copy) are always rendered first regardless of
+    // this registry — they live directly in aiPanel._addActionToolbar().
+    //
+    // Analogous to IDE "intention actions" or email client "quick action" toolbars:
+    // the framework defines the slot; the application fills it with its own actions.
+    //
+    // Usage:
+    //   PFTemplate.registerOutputAction({
+    //       type:    'translate',
+    //       icon:    'pi-language',
+    //       title:   'Translate',
+    //       handler: function(text, msgEl) { myApp.translate(text); }
+    //   });
+
+    const OutputActionRegistry = {
+        _actions: [],
+
+        /**
+         * Register a custom output action button.
+         *
+         * The button appears to the right of the built-in Retry/Copy buttons
+         * in the action toolbar below each AI response.
+         *
+         * @param {object}   def          — action definition object
+         * @param {string}   def.type     — unique identifier (e.g. 'translate', 'tts').
+         *   Used only as a key; not displayed to the user.
+         * @param {string}   def.icon     — PrimeIcons CSS class without the 'pi ' prefix
+         *   (e.g. 'pi-language', 'pi-volume-up'). See primefaces.org/icons.
+         * @param {string}   def.title    — button label and tooltip text.
+         * @param {Function} def.handler  — called when the user clicks the button.
+         *   Receives (text: string, msgEl: HTMLElement):
+         *     text   — plain-text content of the AI response (no HTML, no markdown syntax).
+         *     msgEl  — the .ai-message-assistant wrapper div for the response.
+         *
+         * @called-from Application code in <ui:insert name="scripts"> or page-specific JS,
+         *   after layout.js has loaded. May be called multiple times for multiple actions.
+         * @returns {void}
+         */
+        register(def) {
+            this._actions.push(def);
+        },
+
+        /**
+         * Return a shallow copy of all registered actions.
+         * Called by aiPanel._addActionToolbar() when building the toolbar for each response.
+         *
+         * @returns {Array<{type, icon, title, handler}>}
+         */
+        getAll() {
+            return this._actions.slice();
+        }
+    };
+
+    /**
+     * Public shorthand for OutputActionRegistry.register().
+     * Registers a custom action button shown below every AI response.
+     *
+     * @param {object} def — see OutputActionRegistry.register() for the full parameter spec.
+     * @called-from Application page scripts.
+     * @returns {void}
+     */
+    function registerOutputAction(def) {
+        OutputActionRegistry.register(def);
+    }
+
+    // ─── TTS Player ───────────────────────────────────────
+    //
+    // Compact audio player bar that appears beneath an AI response when the
+    // app registers a TTS provider via TtsPlayer.register().
+    //
+    // The template owns the playback chrome (play/pause, progress bar, close).
+    // The app owns the audio bytes — it calls a TTS API and returns a Blob or URL.
+    // Analogous to how MultimodalInput separates file handling (template) from
+    // file processing (app): the template renders the UI, the app supplies the data.
+    //
+    // Usage:
+    //   PFTemplate.TtsPlayer.register(async function(text) {
+    //       const resp = await fetch('/api/tts', { method: 'POST', body: JSON.stringify({ text }) });
+    //       return await resp.blob(); // or return a URL string
+    //   });
+
+    const TtsPlayer = {
+        _handler: null,
+        _current: null, // { audio, objectUrl, playerEl }
+
+        /**
+         * Register the TTS provider function.
+         *
+         * Once registered, a "Speak" button appears in the action toolbar of every
+         * new AI response. Call register() before messages are streamed to ensure
+         * full coverage — already-rendered messages do not gain the button.
+         *
+         * @param {Function} fn — async function(text: string) → Blob | string.
+         *   Called with the plain-text AI response. Must return either a Blob
+         *   (audio bytes, any browser-supported format) or a URL string.
+         *   The template handles playback either way.
+         *
+         * @called-from Application code in <ui:insert name="scripts">.
+         * @returns {void}
+         */
+        register(fn) {
+            this._handler = fn;
+        },
+
+        /**
+         * Invoke the registered TTS handler and open the compact player bar.
+         *
+         * Stops any currently-playing audio first (single-player constraint).
+         * Shows a loading spinner while the handler resolves, then swaps to the
+         * full play/pause/progress player once audio is ready.
+         *
+         * @param {string}      text  — plain-text content of the AI response.
+         * @param {HTMLElement} msgEl — .ai-message-assistant wrapper; player bar
+         *   is appended as its last child, visible at all times (not hover-only).
+         *
+         * @called-from Speak button click handler in aiPanel._addActionToolbar().
+         * @returns {Promise<void>}
+         */
+        async _speak(text, msgEl) {
+            if (!this._handler) return;
+            this._stop();
+
+            const player = document.createElement('div');
+            player.className = 'ai-tts-player ai-tts-loading';
+            player.innerHTML = '<i class="pi pi-spin pi-spinner ai-tts-spinner"></i><span class="ai-tts-loading-text">Loading audio…</span><button class="ai-tts-close" type="button" title="Close"><i class="pi pi-times"></i></button>';
+            player.querySelector('.ai-tts-close').addEventListener('click', () => this._stop());
+            msgEl.appendChild(player);
+
+            let url, objectUrl = null;
+            try {
+                const result = await this._handler(text);
+                if (result instanceof Blob) {
+                    objectUrl = URL.createObjectURL(result);
+                    url = objectUrl;
+                } else {
+                    url = result;
+                }
+            } catch (_) {
+                player.remove();
+                return;
+            }
+
+            const audio = new Audio(url);
+            this._current = { audio, objectUrl, playerEl: player };
+
+            player.className = 'ai-tts-player';
+            player.innerHTML = '<button class="ai-tts-play-btn" type="button" title="Play"><i class="pi pi-play"></i></button><div class="ai-tts-progress-wrap"><div class="ai-tts-progress-bar"><div class="ai-tts-progress-fill"></div></div><div class="ai-tts-time"><span class="ai-tts-current">0:00</span><span> / </span><span class="ai-tts-duration">0:00</span></div></div><button class="ai-tts-close" type="button" title="Close"><i class="pi pi-times"></i></button>';
+
+            const playBtn    = player.querySelector('.ai-tts-play-btn');
+            const playIcon   = playBtn.querySelector('.pi');
+            const fill       = player.querySelector('.ai-tts-progress-fill');
+            const currentEl  = player.querySelector('.ai-tts-current');
+            const durationEl = player.querySelector('.ai-tts-duration');
+            const progressBar = player.querySelector('.ai-tts-progress-bar');
+
+            player.querySelector('.ai-tts-close').addEventListener('click', () => this._stop());
+
+            playBtn.addEventListener('click', () => {
+                if (audio.paused) { audio.play(); } else { audio.pause(); }
+            });
+
+            // Click anywhere on the progress bar to seek
+            progressBar.addEventListener('click', (e) => {
+                if (!audio.duration) return;
+                const rect = progressBar.getBoundingClientRect();
+                audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
+            });
+
+            audio.addEventListener('loadedmetadata', () => { durationEl.textContent = this._formatTime(audio.duration); });
+            audio.addEventListener('timeupdate', () => {
+                if (!audio.duration) return;
+                fill.style.width = ((audio.currentTime / audio.duration) * 100) + '%';
+                currentEl.textContent = this._formatTime(audio.currentTime);
+            });
+            audio.addEventListener('play',  () => { playIcon.className = 'pi pi-pause'; });
+            audio.addEventListener('pause', () => { playIcon.className = 'pi pi-play'; });
+            audio.addEventListener('ended', () => { playIcon.className = 'pi pi-play'; fill.style.width = '100%'; });
+            audio.addEventListener('error', () => this._stop());
+
+            audio.play().catch(() => {}); // silently ignore autoplay policy blocks
+        },
+
+        /**
+         * Stop playback, revoke the object URL (if any), and remove the player bar.
+         *
+         * Safe to call when nothing is playing — returns immediately if _current is null.
+         * Also called when a new Speak click displaces the current audio stream.
+         *
+         * @called-from _speak() before starting new audio, close button handler,
+         *   and the audio error handler.
+         * @returns {void}
+         */
+        _stop() {
+            if (!this._current) return;
+            const { audio, objectUrl, playerEl } = this._current;
+            audio.pause();
+            audio.src = '';
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
+            if (playerEl.parentNode) playerEl.remove();
+            this._current = null;
+        },
+
+        /**
+         * Format a duration in seconds as M:SS (e.g. 0:00, 1:07, 12:34).
+         *
+         * @param {number} seconds — float from audio.duration or audio.currentTime.
+         * @returns {string}
+         *
+         * @called-from loadedmetadata and timeupdate handlers inside _speak().
+         */
+        _formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60);
+            return m + ':' + (s < 10 ? '0' : '') + s;
+        }
+    };
+
     // ─── Multimodal Input ─────────────────────────────────
     //
     // Unified attachment manager for the AI chat panel.
@@ -1411,6 +1740,7 @@ const PFTemplate = (() => {
         restoreMenuTheme();
         restoreInputStyle();
         restoreRtl();
+        restoreSystemPrompt();
         palette.init();
         aiPanel.init();
         activityPanel.init();
@@ -1431,5 +1761,5 @@ const PFTemplate = (() => {
         });
     });
 
-    return { setTheme, cycleTheme, setMenuLayout, setMenuTheme, setInputStyle, setRtl, toggleMenu, toggleDropdown, closeAllDropdowns, toggleAiPanel, setAiStatus, openConfig, palette, aiPanel, activityPanel, AgentEventBus, InputEventBus, RendererRegistry, AgentTransport, DemoAgent, PluginRegistry, registerPlugin, MultimodalInput };
+    return { setTheme, cycleTheme, setMenuLayout, setMenuTheme, setInputStyle, setRtl, toggleMenu, toggleDropdown, closeAllDropdowns, toggleAiPanel, setAiStatus, openConfig, palette, aiPanel, activityPanel, AgentEventBus, InputEventBus, RendererRegistry, AgentTransport, DemoAgent, PluginRegistry, registerPlugin, MultimodalInput, OutputActionRegistry, registerOutputAction, TtsPlayer, setSystemPrompt };
 })();

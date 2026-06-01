@@ -3,6 +3,31 @@
                 xmlns:h="jakarta.faces.html"
                 xmlns:ui="jakarta.faces.facelets">
 
+    <!--
+        NAVIGATION OPTIONS
+        ==================
+        Items below use plain <a href> links so this template works standalone.
+        For JSF navigation, swap the <a> for one of these (keep the menu-link /
+        menu-icon / menu-label classes so styling is preserved):
+
+          • h:link        — plain view navigation between .xhtml pages:
+              <h:link outcome="/page" styleClass="menu-link"> ... </h:link>
+
+          • p:commandLink — action-based navigation (dynamic tabs / shell handler).
+              Wrap the whole menu in one <h:form id="menuForm"> and add
+              xmlns:p="http://primefaces.org/ui" to the composition above:
+
+              <p:commandLink action="uishell:Home" process="@this" immediate="true"
+                             styleClass="menu-link">
+                  <i class="pi pi-home menu-icon" />
+                  <span class="menu-label">Home</span>
+              </p:commandLink>
+
+        Note: p:menuitem cannot be used here directly — it must live inside a
+        p:menu / p:menubar, which would replace this sidebar's styling with the
+        PrimeFaces theme. See doc/installation-guide.md (Step 5).
+    -->
+
     <nav class="layout-sidebar" aria-label="Main navigation">
         <div class="sidebar-menu">
 
