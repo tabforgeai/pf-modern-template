@@ -202,7 +202,9 @@ Simulates agent activity for development and demo purposes.
 
 ### `DemoAgent.enabled`
 
-Set to `false` when connecting a real backend.
+Set to `false` when connecting a real backend. This single flag turns off **both** the simulated
+chat reply and the simulated Activity events — after that, the chat waits for your code to provide
+a reply via [`aiPanel.streamAssistant(text)`](#aipanelstreamassistanttext).
 
 ```javascript
 PFTemplate.DemoAgent.enabled = false;
@@ -233,6 +235,33 @@ PFTemplate.aiPanel.switchTab('activity');
 ### `aiPanel.send()`
 
 Programmatically sends the current textarea value as a chat message.
+
+### `aiPanel.streamAssistant(text)`
+
+Renders an assistant reply in the chat — **the public entry point for a real backend.** Call it
+with your backend's response and it drives the same typewriter animation, markdown rendering,
+code-copy buttons, and action toolbar as the built-in demo. `text` supports markdown.
+
+```javascript
+PFTemplate.DemoAgent.enabled = false;
+
+PFTemplate.InputEventBus.on('user_message', (msg) => {
+    fetch('/api/ai/chat', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ text: msg.text })
+    })
+    .then(r => r.text())
+    .then(reply => PFTemplate.aiPanel.streamAssistant(reply));
+});
+```
+
+Backends that stream over SSE/WebSocket can instead emit an `assistant_message` event on the
+`AgentEventBus` — the template routes it into the chat automatically:
+
+```javascript
+PFTemplate.AgentEventBus.emit({ type: 'assistant_message', text: 'Here is your answer…' });
+```
 
 ---
 

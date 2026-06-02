@@ -254,6 +254,18 @@ const PFTemplate = (() => {
 
             MultimodalInput.clear();
 
+            // ── Demo vs. real backend ─────────────────────────
+            // Everything below is SIMULATION. With a real backend you set
+            // DemoAgent.enabled = false; the message has already left the browser
+            // via InputEventBus.emit(...) above. Your application forwards it to
+            // the backend and renders the reply by calling aiPanel.streamAssistant(text)
+            // (or by emitting an 'assistant_message' event on AgentEventBus — see
+            // the wiring in DOMContentLoaded). Until then we just show "thinking".
+            if (!DemoAgent.enabled) {
+                setAiStatus('thinking');
+                return;
+            }
+
             if (text) {
                 this._stream(this._demoResponse(text));
                 DemoAgent.simulate(text);
@@ -266,6 +278,39 @@ const PFTemplate = (() => {
                 this._stream('I received your ' + (n === 1 ? 'attachment' : n + ' attachments') + '. In a real deployment the backend would process ' + (n === 1 ? 'it' : 'them') + ' here — e.g. via an image analysis or document processing pipeline.');
                 DemoAgent.simulate('Analyze: ' + label);
             }
+        },
+
+        /**
+         * Render an assistant reply in the chat — the public entry point for a real
+         * backend. Call this when your backend's response text is ready (e.g. from a
+         * fetch callback, or an SSE/WebSocket message handler).
+         *
+         * Drives the same typewriter animation, markdown rendering, code-copy buttons
+         * and action toolbar as the built-in demo. Always use this instead of touching
+         * any private (_-prefixed) method.
+         *
+         * @param {string} text — the assistant's reply. Markdown is supported.
+         *
+         * @example
+         *   PFTemplate.DemoAgent.enabled = false;               // turn off simulation
+         *   PFTemplate.InputEventBus.on('user_message', (msg) => {
+         *       fetch('/api/ai/chat', {
+         *           method: 'POST',
+         *           headers: { 'Content-Type': 'application/json' },
+         *           body: JSON.stringify({ text: msg.text })
+         *       })
+         *       .then(r => r.text())
+         *       .then(reply => PFTemplate.aiPanel.streamAssistant(reply));
+         *   });
+         *
+         * @called-from Application code (fetch / SSE / WebSocket handlers), and the
+         *   built-in 'assistant_message' bridge wired in DOMContentLoaded.
+         * @returns {void}
+         */
+        streamAssistant(text) {
+            if (typeof text !== 'string' || !text) return;
+            this._hideEmpty();
+            this._stream(text);
         },
 
         /**
@@ -1745,6 +1790,15 @@ const PFTemplate = (() => {
         aiPanel.init();
         activityPanel.init();
         MultimodalInput.init();
+
+        // Bridge: route a backend 'assistant_message' event into the chat bubble.
+        // This lets a real backend deliver BOTH the chat reply AND activity events
+        // over the single AgentTransport (SSE / WebSocket) channel — no extra JS
+        // callback needed. Backend emits: { type:'assistant_message', text:'…' }.
+        // (The other path — fetch + aiPanel.streamAssistant(reply) — works too.)
+        AgentEventBus.on('assistant_message', (evt) => {
+            if (evt && typeof evt.text === 'string') aiPanel.streamAssistant(evt.text);
+        });
 
         // Close topbar dropdowns when clicking outside
         document.addEventListener('click', (e) => {

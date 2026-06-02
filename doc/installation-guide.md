@@ -259,20 +259,188 @@ To use a different background image, place your image in `resources/pf-template/
 
 ## Connecting the AI Assistant
 
-The AI panel fires a `user_message` event on `InputEventBus` each time the user sends a message. Wire it up in your page scripts:
+Out of the box, the chat panel runs in **demo mode**: typing a message produces a fake
+typewriter reply and simulated "Activity" events, so the UI is fully interactive before you
+write any backend code. This section shows how to replace that demo with your real backend.
+
+### How it works (the mental model)
+
+The template is a **pure frontend**. It never calls your backend itself — instead it exposes
+two event buses on the global `PFTemplate` object:
+
+| Bus | Direction | You use it to… |
+|---|---|---|
+| `PFTemplate.InputEventBus` | **outbound** (user → you) | **receive** every message the user sends in the chat |
+| `PFTemplate.AgentEventBus` | **inbound** (you → template) | optionally feed live "Activity" events back into the panel |
+
+To show a reply in the chat you call one method: **`PFTemplate.aiPanel.streamAssistant(text)`**.
+
+### Step 1 — Turn off the demo
 
 ```javascript
-PFTemplate.AgentEventBus.on('*', function(event) {
-    console.log('Agent event:', event.type, event.status);
-});
+PFTemplate.DemoAgent.enabled = false;
+```
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Listen for outbound user messages
-    // Forward to your backend via fetch / WebSocket / SSE
+This single line stops both the fake chat reply and the simulated Activity events. The chat
+now waits for *your* code to provide a reply.
+
+### Step 2 — Receive the chat messages
+
+This is the part most apps need: **read what the user typed.** Subscribe to `user_message`
+and you get every message, including any attachments:
+
+```javascript
+PFTemplate.InputEventBus.on('user_message', function (msg) {
+    console.log(msg.text);          // the text the user typed
+    console.log(msg.attachments);   // [{ id, type, mimeType, name, size }]  — JSON-safe metadata
+    console.log(msg.files);         // [{ id, file }]  — native File objects, for upload
+    console.log(msg.systemPrompt);  // the configured system prompt, if any
 });
 ```
 
-Full API reference: [api-reference.md](api-reference.md)
+> The `text` you read here is exactly the string the user typed. What you do with it is up to
+> you — send it to a REST endpoint, a WebSocket, an LLM SDK, or just log it.
+
+### Step 3 — Show the reply
+
+Call `streamAssistant(text)` with your backend's response. It renders with the same typewriter
+animation, markdown formatting, code-copy buttons, and action toolbar as the demo:
+
+```javascript
+PFTemplate.aiPanel.streamAssistant('Hello from my backend!');   // markdown is supported
+```
+
+### Putting it together — the minimal pattern
+
+You **don't** need to write the JavaScript above yourself — the wiring is already included in
+`template.xhtml`, just before `</h:body>`. It runs on every page that uses the template and stays
+in **demo mode** until you point it at your backend. Open `template.xhtml` and set one line:
+
+```javascript
+// in template.xhtml — change this from '' to your endpoint:
+var AI_CHAT_ENDPOINT = '#{request.contextPath}/api/ai/chat';
+```
+
+> **Adjust the endpoint to match your application.** `#{request.contextPath}/api/ai/chat` is only
+> an example. If your REST resource lives elsewhere (different `@ApplicationPath`, different
+> `@Path`, an API gateway, an absolute URL, …), set `AI_CHAT_ENDPOINT` to that. Leaving it empty
+> keeps the demo running.
+
+That single block does everything: it disables the demo, subscribes to `user_message`, POSTs the
+text to your endpoint, and renders the reply with `streamAssistant()`.
+
+A matching Jakarta REST (JAX-RS) endpoint on the backend:
+
+```java
+@Path("/ai")
+public class AiChatResource {
+
+    @POST
+    @Path("/chat")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.TEXT_PLAIN)
+    public String chat(ChatRequest request) {
+        String userText = request.getText();   // ← the message from the chat
+        // Call your LLM (Anthropic Java SDK, etc.) and return its reply:
+        return myAiService.ask(userText);
+    }
+
+    public static class ChatRequest {
+        private String text;
+        public String getText()           { return text; }
+        public void   setText(String t)   { this.text = t; }
+    }
+}
+```
+
+That is everything you need to "have access to the messages sent through the chat" and reply
+to them.
+
+### Including file attachments
+
+The chat lets users attach files (paperclip / image buttons, paste, or drag-and-drop). Each
+`user_message` event therefore carries two parallel views of the attachments:
+
+| Field | Contents | Use for |
+|---|---|---|
+| `msg.attachments` | `[{ id, type, mimeType, name, size }]` — **JSON-safe metadata only** | logging, previews, sending over SSE/WebSocket |
+| `msg.files` | `[{ id, file }]` — the native browser **`File`** objects | actually uploading the bytes |
+
+To upload the bytes you must send **`multipart/form-data`** instead of JSON. Replace the `fetch`
+in the `template.xhtml` block with a `FormData` build:
+
+```javascript
+PFTemplate.InputEventBus.on('user_message', function (msg) {
+    var form = new FormData();
+    form.append('text', msg.text);
+    msg.files.forEach(function (f) {
+        form.append('files', f.file, f.file.name);   // f.file is a real File object
+    });
+
+    // NOTE: do not set a Content-Type header — the browser adds the multipart boundary.
+    fetch(AI_CHAT_ENDPOINT, { method: 'POST', body: form })
+        .then(function (r) { return r.text(); })
+        .then(function (reply) { PFTemplate.aiPanel.streamAssistant(reply); });
+});
+```
+
+On the backend, read the parts with Jakarta REST's standard `EntityPart` (Jakarta REST 3.1+,
+included in Jakarta EE 10/11 — no vendor-specific API needed):
+
+```java
+@POST
+@Path("/chat")
+@Consumes(MediaType.MULTIPART_FORM_DATA)
+@Produces(MediaType.TEXT_PLAIN)
+public String chat(List<EntityPart> parts) throws IOException {
+    String text = "";
+
+    for (EntityPart part : parts) {
+        if ("text".equals(part.getName())) {
+            text = part.getContent(String.class);                 // the typed message
+        } else if ("files".equals(part.getName())) {
+            String   filename = part.getFileName().orElse("upload");
+            String   mimeType = part.getMediaType().toString();
+            try (InputStream in = part.getContent()) {
+                byte[] bytes = in.readAllBytes();                 // the uploaded file
+                // persist it, or forward it to your AI service:
+                myAiService.addAttachment(filename, mimeType, bytes);
+            }
+        }
+    }
+
+    return myAiService.ask(text);
+}
+```
+
+Each `<input type="file">` part shares the same form field name (`files`), so a single
+`List<EntityPart>` receives the text plus every uploaded file in one request.
+
+### Optional — live streaming and the Activity tab
+
+If you want token-by-token streaming and the live **Activity** timeline (the second tab in the
+panel), connect a Server-Sent Events or WebSocket stream and let the backend push events:
+
+```javascript
+PFTemplate.DemoAgent.enabled = false;
+PFTemplate.AgentTransport.connectSSE('#{request.contextPath}/api/ai/stream');
+```
+
+Over that one channel your backend can send **both** the chat reply and activity events. The
+template automatically routes an `assistant_message` event into the chat bubble; all other event
+types render as Activity rows:
+
+```jsonc
+// chat reply  → appears in the Chat tab
+{ "type": "assistant_message", "text": "Here is your answer…" }
+
+// progress    → appears in the Activity tab
+{ "type": "tool_call",      "status": "running", "title": "Searching knowledge base", "agent": "Assistant" }
+{ "type": "agent_finished", "status": "success", "title": "Response ready",           "agent": "Assistant" }
+```
+
+See [api-reference.md](api-reference.md) for the full event shape and the complete `PFTemplate`
+API (renderers, plugins, output actions, TTS, etc.).
 
 ---
 

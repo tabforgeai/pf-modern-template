@@ -306,5 +306,38 @@
     <!-- Slot for page-specific scripts -->
     <ui:insert name="scripts" />
 
+    <!--
+        ─── Connect the AI panel to your backend ──────────────────────────────
+        By default the chat runs in DEMO mode (simulated replies + activity).
+        To wire a real backend, set AI_CHAT_ENDPOINT below to your REST endpoint.
+        While it is left empty the panel stays in demo mode — nothing else to do.
+
+        This block runs on every page (it lives in the template, not per-page),
+        sends the typed text as JSON, and renders the plain-text reply. To also
+        upload attachments, switch to FormData + multipart — see the
+        "Including file attachments" section of doc/installation-guide.md.
+    -->
+    <script>
+        (function () {
+            // ↓↓↓ Set this to your endpoint, e.g. '#{request.contextPath}/api/ai/chat'
+            var AI_CHAT_ENDPOINT = '';
+            if (!AI_CHAT_ENDPOINT) return; // empty → stay in demo mode
+
+            document.addEventListener('DOMContentLoaded', function () {
+                PFTemplate.DemoAgent.enabled = false;
+
+                PFTemplate.InputEventBus.on('user_message', function (msg) {
+                    fetch(AI_CHAT_ENDPOINT, {
+                        method:  'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body:    JSON.stringify({ text: msg.text })
+                    })
+                    .then(function (r) { return r.text(); })
+                    .then(function (reply) { PFTemplate.aiPanel.streamAssistant(reply); });
+                });
+            });
+        }());
+    </script>
+
 </h:body>
 </html>

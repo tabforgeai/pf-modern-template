@@ -6,7 +6,7 @@
       <modelVersion>4.0.0</modelVersion>
       <groupId>ai.tabforge</groupId>
       <artifactId>pf-modern-template</artifactId>
-      <version>1.0.0</version>
+      <version>1.0.1</version>
       <packaging>war</packaging>
 
       <properties>
