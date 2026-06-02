@@ -721,6 +721,9 @@ const PFTemplate = (() => {
         },
 
         _onEvent(event) {
+            // 'assistant_message' is a chat-bubble event (routed into the chat by the
+            // AgentEventBus bridge), not an agent activity step — keep it out of the timeline.
+            if (event && event.type === 'assistant_message') return;
             this._history.push({ event, ts: performance.now() });
             this._addEventRow(event);
         },
