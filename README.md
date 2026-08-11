@@ -13,6 +13,18 @@ Any backend system sends JSON events; the template receives and renders them wit
 
 The template does not know — and does not care — whether the events come from OpenAI, a custom LLM, a rule engine, or a batch job. It only knows how to render them.
 
+## Download & Install
+
+**Adding this template to an existing Jakarta EE / PrimeFaces app?**
+Download the latest `pf-modern-template-<version>-layout.zip` from the
+[**Releases**](https://github.com/tabforgeai/pf-modern-template/releases) page and follow the
+step-by-step [**Installation Guide**](doc/installation-guide.md). The ZIP drops a self-contained
+`pf-modern-template/` folder — Facelets templates, CSS/JS resources, an optional login page, and
+the CDI beans — into your project. No build dependency, nothing to compile.
+
+**Want to explore or build on the demo instead?** Clone this repo and jump to
+[Getting Started](#getting-started) below.
+
 ## Tech Stack
 
 | Layer | Technology |
