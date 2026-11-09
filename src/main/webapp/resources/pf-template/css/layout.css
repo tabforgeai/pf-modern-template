@@ -426,6 +426,14 @@
         }
     }
 
+    /* The menu may be wrapped in an h:form (JSF action navigation). That form is a
+       plain block and would become the single flex item of .sidebar-menu, breaking
+       the horizontal bar. display:contents removes its box from layout entirely, so
+       the groups inside it participate directly - correct in every menu mode. */
+    .sidebar-menu > form {
+        display: contents;
+    }
+
     .menu-icon {
         font-size: 1rem;
         width: 1.25rem;
@@ -2254,4 +2262,29 @@
             margin-left: 0;
         }
     }
+}
+
+/* ============================================================================
+   UNLAYERED — must stay outside @layer pf-template.
+
+   A menu item may be a p:commandLink, which renders as
+   <a class="ui-commandlink ui-widget menu-link">. PrimeFaces' saga theme styles
+   that with an UNLAYERED `body .ui-commandlink, body .ui-link { color:#2196f3 }`,
+   and an unlayered rule beats every layered one no matter how specific. The
+   sidebar colours below therefore have to live outside the layer as well, or
+   action-navigation menus render in PrimeFaces blue instead of the sidebar text
+   colour. Keep these in sync with the .menu-link rule inside the layer.
+   ============================================================================ */
+
+.layout-sidebar .menu-link {
+    color: var(--sidebar-text);
+    text-decoration: none;
+}
+
+.layout-sidebar .menu-link:hover {
+    color: #ffffff;
+}
+
+.layout-sidebar .menu-link.active {
+    color: var(--sidebar-active-text);
 }
