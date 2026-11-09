@@ -199,7 +199,8 @@ const PFTemplate = (() => {
 
             this.inputEl.addEventListener('input', () => {
                 this.inputEl.style.height = 'auto';
-                this.inputEl.style.height = Math.min(this.inputEl.scrollHeight, 128) + 'px';
+                // 168px = the 12em max-height of .ai-panel-textarea - keep the two in sync.
+                this.inputEl.style.height = Math.min(this.inputEl.scrollHeight, 168) + 'px';
             });
             this._initVoice();
         },

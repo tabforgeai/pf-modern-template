@@ -1,3 +1,22 @@
+/* ============================================================================
+   DARK THEME OVERRIDES FOR PRIMEFACES WIDGETS
+
+   Every selector here is prefixed with #pft, the id on the <html> element in
+   template.xhtml. That is NOT decoration - it is a specificity lever.
+
+   PrimeFaces ships the saga-blue theme inside its own jar, and the app relies
+   on it for LIGHT mode (our layout.css only styles a handful of widgets). This
+   file re-skins those same widgets for dark mode, so it has to OUTRANK saga.
+
+   PrimeFaces 16 restructured several components and scoped saga deeper - for
+   example `body .ui-menu .ui-menu-list .ui-menuitem.ui-state-hover > .ui-menuitem-link`
+   is (0,5,1), and some tree selectors reach (0,8,1). Class-count duels against
+   that are unwinnable and unmaintainable. A single id outranks any number of
+   classes, so #pft wins once and for all, while the relative order WITHIN this
+   file is untouched (every rule gains exactly the same weight).
+
+   If the id is ever renamed, change it in template.xhtml and here together.
+   ============================================================================ */
 /* =====================================================
    PF Modern Template — PrimeFaces Dark/Dim Overrides
    -----------------------------------------------------
@@ -10,7 +29,7 @@
    unlayered and therefore wins over layered rules.
    To override it reliably these rules must also be
    unlayered AND carry higher specificity. The
-   :is([data-theme="dark"], [data-theme="dim"]) prefix
+   #pft:is([data-theme="dark"], [data-theme="dim"]) prefix
    adds one attribute-level specificity point over the
    equivalent stock theme rule, so our colors win without
    needing !important in most cases.
@@ -23,20 +42,20 @@
    Covers many components at once (panels, content areas).
    ───────────────────────────────────────────────────── */
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-widget-content {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-widget-content {
     background: var(--surface-card);
     border-color: var(--surface-border);
     color: var(--text-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-widget-header {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-widget-header {
     background: var(--surface-overlay);
     border-color: var(--surface-border);
     color: var(--text-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-widget,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-widget * {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-widget,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-widget * {
     color: inherit;
 }
 
@@ -45,143 +64,155 @@
    ===================================================== */
 
 /* ─── Card ─────────────────────────────────────────── */
-:is([data-theme="dark"], [data-theme="dim"]) .ui-card {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-card {
     background: var(--surface-card);
     color: var(--text-color);
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-card .ui-card-subtitle {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-card .ui-card-subtitle {
     color: var(--text-color-secondary);
 }
 
 /* ─── Panel ────────────────────────────────────────── */
-:is([data-theme="dark"], [data-theme="dim"]) .ui-panel .ui-panel-titlebar,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-panel .ui-panel-header {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-panel .ui-panel-titlebar,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-panel .ui-panel-header {
     background: var(--surface-overlay);
     border-color: var(--surface-border);
     color: var(--text-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-panel .ui-panel-content {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-panel .ui-panel-content {
     background: var(--surface-card);
     border-color: var(--surface-border);
     color: var(--text-color);
 }
 
 /* ─── DataTable ────────────────────────────────────── */
-:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-header,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-footer {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-header,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-footer {
     background: var(--surface-overlay);
     border-color: var(--surface-border);
     color: var(--text-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable thead th,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-thead > tr > th {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable thead th,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-thead > tr > th {
     background: var(--surface-overlay);
     border-color: var(--surface-border);
     color: var(--text-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable tbody td,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-data > tr > td {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable tbody td,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-data > tr > td {
     background: var(--surface-card);
     border-color: var(--surface-border);
     color: var(--text-color);
 }
 
 /* zebra striping */
-:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-data > tr.ui-datatable-even,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-data > tr.ui-datatable-even > td {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-data > tr.ui-datatable-even,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-data > tr.ui-datatable-even > td {
     background: var(--surface-ground);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-data > tr.ui-state-highlight,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-data > tr.ui-state-highlight > td {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-data > tr.ui-state-highlight,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-data > tr.ui-state-highlight > td {
     background: color-mix(in srgb, var(--primary-color) 28%, var(--surface-card));
     color: var(--text-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-data > tr.ui-state-hover,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-data > tr.ui-state-hover > td {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-data > tr.ui-state-hover,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-datatable .ui-datatable-data > tr.ui-state-hover > td {
     background: color-mix(in srgb, var(--primary-color) 14%, var(--surface-card));
 }
 
 /* ─── Paginator ────────────────────────────────────── */
-:is([data-theme="dark"], [data-theme="dim"]) .ui-paginator {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-paginator {
     background: var(--surface-overlay);
     border-color: var(--surface-border);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-paginator .ui-paginator-page,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-paginator .ui-paginator-next,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-paginator .ui-paginator-prev,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-paginator .ui-paginator-first,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-paginator .ui-paginator-last {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-paginator .ui-paginator-page,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-paginator .ui-paginator-next,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-paginator .ui-paginator-prev,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-paginator .ui-paginator-first,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-paginator .ui-paginator-last {
     color: var(--text-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-paginator .ui-paginator-page.ui-state-active {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-paginator .ui-paginator-page.ui-state-active {
     background: var(--primary-color);
     color: var(--primary-color-text);
 }
 
 /* ─── InputText / Textarea ─────────────────────────── */
-:is([data-theme="dark"], [data-theme="dim"]) .ui-inputtext,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-inputtextarea {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-inputtext,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-inputtextarea,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-inputfield {
     background: var(--surface-ground);
     border-color: var(--surface-border);
     color: var(--text-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-inputtext:enabled:focus,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-inputtextarea:enabled:focus {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-inputtext:enabled:focus,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-inputtextarea:enabled:focus,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-inputfield:enabled:focus {
     border-color: var(--primary-color);
     box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--primary-color) 30%, transparent);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-inputtext::placeholder {
+/* FORM TYPE = Filled. saga marks it with
+   `body.ui-input-filled .ui-inputfield { background-color:#f8f9fa }` = (0,2,1).
+   Our #pft rules now outrank that, so WE must restate the distinction for dark
+   mode - with a higher specificity than our own plain-input rule above, or the
+   two form types look identical. */
+#pft:is([data-theme="dark"], [data-theme="dim"]) :is(body.ui-input-filled, .ui-input-filled) :is(.ui-inputtext, .ui-inputtextarea, .ui-inputfield) {
+    background: var(--surface-overlay);
+    border-color: transparent;
+}
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-inputtext::placeholder,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-inputfield::placeholder {
     color: var(--text-color-muted);
 }
 
 /* ─── Buttons (secondary / outlined / text only) ───── */
-:is([data-theme="dark"], [data-theme="dim"]) .ui-button.ui-button-secondary:not(.ui-state-active),
-:is([data-theme="dark"], [data-theme="dim"]) .ui-button.ui-secondary-button {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-button.ui-button-secondary:not(.ui-state-active),
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-button.ui-secondary-button {
     background: var(--surface-overlay);
     border-color: var(--surface-border);
     color: var(--text-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-button.ui-button-outlined,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-button.ui-button-text {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-button.ui-button-outlined,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-button.ui-button-text {
     background: transparent;
     color: var(--primary-color);
 }
 
 /* ─── Dropdown / SelectOneMenu ─────────────────────── */
-:is([data-theme="dark"], [data-theme="dim"]) .ui-selectonemenu {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-selectonemenu {
     background: var(--surface-ground);
     border-color: var(--surface-border);
     color: var(--text-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-selectonemenu .ui-selectonemenu-label {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-selectonemenu .ui-selectonemenu-label {
     color: var(--text-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-selectonemenu-panel,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-selectcheckboxmenu-panel {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-selectonemenu-panel,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-selectcheckboxmenu-panel {
     background: var(--surface-overlay);
     border-color: var(--surface-border);
     color: var(--text-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-selectonemenu-items .ui-selectonemenu-item:not(.ui-state-highlight):hover {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-selectonemenu-items .ui-selectonemenu-item:not(.ui-state-highlight):hover {
     background: color-mix(in srgb, var(--primary-color) 14%, var(--surface-overlay));
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-selectonemenu-items .ui-selectonemenu-item.ui-state-highlight {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-selectonemenu-items .ui-selectonemenu-item.ui-state-highlight {
     background: var(--primary-color);
     color: var(--primary-color-text);
 }
@@ -191,154 +222,155 @@
    ===================================================== */
 
 /* ─── Dialog ───────────────────────────────────────── */
-/* PrimeFaces 16 changed the dialog markup: .ui-dialog became the full-viewport
-   scrollable LAYER, and the new .ui-dialog-box is the visible dialog itself. A
-   background on .ui-dialog would therefore paint a sheet over the whole screen,
-   so box-level styling targets .ui-dialog-box. The :has() fallback keeps
-   PrimeFaces 15 and earlier working, where .ui-dialog IS the box. */
-:is([data-theme="dark"], [data-theme="dim"]) .ui-dialog-box,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-dialog:not(:has(> .ui-dialog-box)),
-:is([data-theme="dark"], [data-theme="dim"]) .ui-dialog .ui-dialog-content {
+/* PrimeFaces 16 split the dialog in two: .ui-dialog is now a FULL-VIEWPORT scrollable
+   layer and the new .ui-dialog-box is the visible dialog. Two consequences:
+     1. Never give .ui-dialog a background - it would cover the whole screen.
+     2. PrimeFaces scopes its own white defaults as
+        `body .ui-dialog .ui-dialog-box .ui-dialog-titlebar/-content/-footer`,
+        specificity (0,3,1). A dark override must therefore name .ui-dialog-box too,
+        giving (0,4,0), or PrimeFaces wins and the dialog stays white. */
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-dialog .ui-dialog-box,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-dialog .ui-dialog-box .ui-dialog-content {
     background: var(--surface-card);
     border-color: var(--surface-border);
     color: var(--text-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-dialog .ui-dialog-titlebar {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-dialog .ui-dialog-box .ui-dialog-titlebar {
     background: var(--surface-overlay);
     border-color: var(--surface-border);
     color: var(--text-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-dialog .ui-dialog-footer {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-dialog .ui-dialog-box .ui-dialog-footer {
     background: var(--surface-overlay);
     border-color: var(--surface-border);
 }
 
 /* ─── Menu / Menubar / TieredMenu ──────────────────── */
-:is([data-theme="dark"], [data-theme="dim"]) .ui-menu,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-menubar,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-tieredmenu,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-contextmenu {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-menu,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-menubar,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-tieredmenu,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-contextmenu {
     background: var(--surface-overlay);
     border-color: var(--surface-border);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-menuitem-link {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-menuitem-link {
     color: var(--text-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-menuitem-link:hover {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-menuitem-link:hover {
     background: color-mix(in srgb, var(--primary-color) 14%, var(--surface-overlay));
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-menuitem-link .ui-menuitem-text,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-menuitem-link .ui-menuitem-icon {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-menuitem-link .ui-menuitem-text,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-menuitem-link .ui-menuitem-icon {
     color: inherit;
 }
 
 /* ─── TabView ──────────────────────────────────────── */
-:is([data-theme="dark"], [data-theme="dim"]) .ui-tabs .ui-tabs-nav {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-tabs .ui-tabs-nav {
     background: var(--surface-overlay);
     border-color: var(--surface-border);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-tabs .ui-tabs-nav li {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-tabs .ui-tabs-nav li {
     background: transparent;
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-tabs .ui-tabs-nav li a {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-tabs .ui-tabs-nav li a {
     color: var(--text-color-secondary);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-tabs .ui-tabs-nav li.ui-state-active {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-tabs .ui-tabs-nav li.ui-state-active {
     background: var(--surface-card);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-tabs .ui-tabs-nav li.ui-state-active a {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-tabs .ui-tabs-nav li.ui-state-active a {
     color: var(--primary-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-tabs .ui-tabs-panel {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-tabs .ui-tabs-panel {
     background: var(--surface-card);
     color: var(--text-color);
 }
 
 /* ─── Accordion ────────────────────────────────────── */
-:is([data-theme="dark"], [data-theme="dim"]) .ui-accordion .ui-accordion-header {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-accordion .ui-accordion-header {
     background: var(--surface-overlay);
     border-color: var(--surface-border);
     color: var(--text-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-accordion .ui-accordion-header.ui-state-active {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-accordion .ui-accordion-header.ui-state-active {
     background: color-mix(in srgb, var(--primary-color) 18%, var(--surface-overlay));
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-accordion .ui-accordion-content {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-accordion .ui-accordion-content {
     background: var(--surface-card);
     border-color: var(--surface-border);
     color: var(--text-color);
 }
 
 /* ─── Fieldset ─────────────────────────────────────── */
-:is([data-theme="dark"], [data-theme="dim"]) .ui-fieldset {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-fieldset {
     background: var(--surface-card);
     border-color: var(--surface-border);
     color: var(--text-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-fieldset .ui-fieldset-legend {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-fieldset .ui-fieldset-legend {
     background: var(--surface-overlay);
     border-color: var(--surface-border);
     color: var(--text-color);
 }
 
 /* ─── Checkbox / RadioButton ───────────────────────── */
-:is([data-theme="dark"], [data-theme="dim"]) .ui-chkbox-box,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-radiobutton-box {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-chkbox-box,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-radiobutton-box {
     background: var(--surface-ground);
     border-color: var(--surface-border);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-chkbox-box.ui-state-active,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-radiobutton-box.ui-state-active {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-chkbox-box.ui-state-active,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-radiobutton-box.ui-state-active {
     background: var(--primary-color);
     border-color: var(--primary-color);
     color: var(--primary-color-text);
 }
 
 /* ─── Messages / Growl ─────────────────────────────── */
-:is([data-theme="dark"], [data-theme="dim"]) .ui-messages,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-message {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-messages,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-message {
     border-color: var(--surface-border);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-growl-item {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-growl-item {
     background: var(--surface-overlay);
     border-color: var(--surface-border);
     color: var(--text-color);
 }
 
 /* ─── Calendar / DatePicker ────────────────────────── */
-:is([data-theme="dark"], [data-theme="dim"]) .ui-datepicker {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-datepicker {
     background: var(--surface-overlay);
     border-color: var(--surface-border);
     color: var(--text-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-datepicker .ui-datepicker-header {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-datepicker .ui-datepicker-header {
     background: var(--surface-card);
     border-color: var(--surface-border);
     color: var(--text-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-datepicker td > a,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-datepicker td > span {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-datepicker td > a,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-datepicker td > span {
     color: var(--text-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-datepicker td > a.ui-state-active {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-datepicker td > a.ui-state-active {
     background: var(--primary-color);
     color: var(--primary-color-text);
 }
@@ -348,78 +380,78 @@
    ===================================================== */
 
 /* ─── OverlayPanel ─────────────────────────────────── */
-:is([data-theme="dark"], [data-theme="dim"]) .ui-overlaypanel {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-overlaypanel {
     background: var(--surface-overlay);
     border-color: var(--surface-border);
     color: var(--text-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-overlaypanel .ui-overlaypanel-content {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-overlaypanel .ui-overlaypanel-content {
     color: var(--text-color);
 }
 
 /* ─── ConfirmDialog ────────────────────────────────── */
-:is([data-theme="dark"], [data-theme="dim"]) .ui-confirmdialog .ui-dialog-content {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-dialog.ui-confirm-dialog .ui-dialog-box .ui-dialog-content {
     background: var(--surface-card);
     color: var(--text-color);
 }
 
 /* ─── Toolbar ──────────────────────────────────────── */
-:is([data-theme="dark"], [data-theme="dim"]) .ui-toolbar {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-toolbar {
     background: var(--surface-overlay);
     border-color: var(--surface-border);
     color: var(--text-color);
 }
 
 /* ─── PickList / OrderList ─────────────────────────── */
-:is([data-theme="dark"], [data-theme="dim"]) .ui-picklist .ui-picklist-list,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-orderlist .ui-orderlist-list {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-picklist .ui-picklist-list,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-orderlist .ui-orderlist-list {
     background: var(--surface-card);
     border-color: var(--surface-border);
     color: var(--text-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-picklist .ui-picklist-item,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-orderlist .ui-orderlist-item {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-picklist .ui-picklist-item,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-orderlist .ui-orderlist-item {
     color: var(--text-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-picklist .ui-picklist-item.ui-state-highlight,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-orderlist .ui-orderlist-item.ui-state-highlight {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-picklist .ui-picklist-item.ui-state-highlight,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-orderlist .ui-orderlist-item.ui-state-highlight {
     background: var(--primary-color);
     color: var(--primary-color-text);
 }
 
 /* ─── Tree / TreeTable ─────────────────────────────── */
-:is([data-theme="dark"], [data-theme="dim"]) .ui-tree,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-treetable {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-tree,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-treetable {
     background: var(--surface-card);
     border-color: var(--surface-border);
     color: var(--text-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-treenode-content .ui-treenode-label.ui-state-highlight,
-:is([data-theme="dark"], [data-theme="dim"]) .ui-treetable tbody td.ui-state-highlight {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-treenode-content .ui-treenode-label.ui-state-highlight,
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-treetable tbody td.ui-state-highlight {
     background: var(--primary-color);
     color: var(--primary-color-text);
 }
 
 /* ─── AutoComplete ─────────────────────────────────── */
-:is([data-theme="dark"], [data-theme="dim"]) .ui-autocomplete-panel {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-autocomplete-panel {
     background: var(--surface-overlay);
     border-color: var(--surface-border);
     color: var(--text-color);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-autocomplete-items .ui-autocomplete-item:hover {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-autocomplete-items .ui-autocomplete-item:hover {
     background: color-mix(in srgb, var(--primary-color) 14%, var(--surface-overlay));
 }
 
 /* ─── InputSwitch / ToggleSwitch ───────────────────── */
-:is([data-theme="dark"], [data-theme="dim"]) .ui-inputswitch .ui-inputswitch-slider {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-inputswitch .ui-inputswitch-slider {
     background: var(--surface-border);
 }
 
-:is([data-theme="dark"], [data-theme="dim"]) .ui-inputswitch.ui-inputswitch-checked .ui-inputswitch-slider {
+#pft:is([data-theme="dark"], [data-theme="dim"]) .ui-inputswitch.ui-inputswitch-checked .ui-inputswitch-slider {
     background: var(--primary-color);
 }

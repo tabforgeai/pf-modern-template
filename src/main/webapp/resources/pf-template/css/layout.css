@@ -925,8 +925,8 @@
         font-size: 0.875rem;
         color: var(--text-color);
         line-height: 1.5;
-        min-height: 1.5em;
-        max-height: 8em;
+        min-height: 4.5em;   /* ~3 lines at rest: a one-line box felt cramped */
+        max-height: 12em;    /* ~8 lines before it scrolls internally */
         outline: none;
         font-family: inherit;
         padding: 0;
