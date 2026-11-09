@@ -191,7 +191,13 @@
    ===================================================== */
 
 /* ─── Dialog ───────────────────────────────────────── */
-:is([data-theme="dark"], [data-theme="dim"]) .ui-dialog,
+/* PrimeFaces 16 changed the dialog markup: .ui-dialog became the full-viewport
+   scrollable LAYER, and the new .ui-dialog-box is the visible dialog itself. A
+   background on .ui-dialog would therefore paint a sheet over the whole screen,
+   so box-level styling targets .ui-dialog-box. The :has() fallback keeps
+   PrimeFaces 15 and earlier working, where .ui-dialog IS the box. */
+:is([data-theme="dark"], [data-theme="dim"]) .ui-dialog-box,
+:is([data-theme="dark"], [data-theme="dim"]) .ui-dialog:not(:has(> .ui-dialog-box)),
 :is([data-theme="dark"], [data-theme="dim"]) .ui-dialog .ui-dialog-content {
     background: var(--surface-card);
     border-color: var(--surface-border);

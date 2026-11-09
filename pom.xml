@@ -21,8 +21,7 @@
           <dependency>
               <groupId>org.primefaces</groupId>
               <artifactId>primefaces</artifactId>
-              <version>15.0.0</version>
-              <classifier>jakarta</classifier>
+              <version>16.0.1</version>
           </dependency>
 
           <!-- Sve ostalo donosi GlassFish 8 (provided) -->
