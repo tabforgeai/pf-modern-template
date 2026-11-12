@@ -1,6 +1,6 @@
 # PF Modern Template
 
-A modern, production-ready application template built on **PrimeFaces 15**, **Jakarta EE 11**, and **Java 21**.
+A modern, production-ready application template built on **PrimeFaces 16**, **Jakarta EE 11**, and **Java 21**.
 
 Beyond the standard rich web application template features — theming, responsive layout, navigation, command palette — this template includes a **generic, event-driven UI component system** for visualizing agent and workflow activity in real time.
 
@@ -29,7 +29,7 @@ the CDI beans — into your project. No build dependency, nothing to compile.
 
 | Layer | Technology |
 |-------|-----------|
-| UI Components | PrimeFaces 15 (`jakarta` classifier) |
+| UI Components | PrimeFaces 16.0.1 |
 | Server | Any Jakarta EE 11 compatible (GlassFish 8, WildFly 34+, Open Liberty 24+, Payara 6.2+) |
 | Platform | Jakarta EE 11 (Faces 4.0, CDI 4.0, Servlet 6.0) |
 | Java | 21 |

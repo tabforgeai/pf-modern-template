@@ -9,9 +9,13 @@ This guide explains how to add **PF Modern Template** to an existing Jakarta EE 
 | Requirement | Version |
 |---|---|
 | Jakarta EE | 11 (Faces 4.1, CDI 4.1) |
-| PrimeFaces | 15.x (jakarta classifier) |
+| PrimeFaces | 16.0.1+ |
 | Java | 21+ |
 | Application server | GlassFish 8 · WildFly 34+ · Payara 6.2+ · Open Liberty 24+ |
+
+> **Coming from PrimeFaces 15?** PrimeFaces 16 dropped the `javax` artifacts, so the `jakarta`
+> classifier no longer exists — remove `<classifier>jakarta</classifier>` from your dependency or
+> the build will not resolve.
 
 ### Keep your PrimeFaces theme
 
@@ -20,21 +24,31 @@ sidebar, AI panel, command palette), design tokens (CSS custom properties), and 
 but it does **not** ship a full theme for the standard PrimeFaces components (`p:dataTable`,
 `p:inputText`, `p:commandButton`, etc.).
 
-Your PrimeFaces components still need a PrimeFaces theme to look styled. Keep whatever theme your
-project already uses (e.g. a PrimeFaces theme JAR such as `saga`, `arya`, `vela`, or a PrimeFlex /
-PrimeFaces 15 theme):
+Your PrimeFaces components still need a PrimeFaces theme to look styled. The simplest option is to
+**leave the parameter out entirely**: PrimeFaces 16 bundles the `saga-blue` theme inside its own jar
+and falls back to it when nothing is configured. That is what the demo and starter applications do.
+
+If you would rather name it explicitly, or already use a different theme, keep what you have:
 
 ```xml
-<!-- web.xml — keep your existing theme, e.g.: -->
+<!-- web.xml — optional; omit it to get the bundled saga-blue -->
 <context-param>
     <param-name>primefaces.THEME</param-name>
     <param-value>saga</param-value>
 </context-param>
 ```
 
-The template's layout styling lives in its own CSS layer (`@layer pf-template, app`) and design
-tokens, so it coexists with a PrimeFaces theme without conflict. To match the template's accent
-color to your theme, override the `--primary-color` token (see Step 7).
+> `saga` is an alias for `saga-blue`, which is the only theme shipped inside the PrimeFaces 16 jar.
+> The names `arya` and `vela` are still recognized, but their stylesheets are not bundled — you
+> would have to supply them yourself.
+
+The template's layout styling is scoped inside a CSS layer (`@layer primefaces, pf-template, app`)
+and driven by design tokens, so it sits *alongside* the PrimeFaces theme instead of replacing it.
+Two parts are deliberately **unlayered**: the color block at the end of `layout.css`, and all of
+`layout-dark-primefaces.css`. The PrimeFaces theme is itself unlayered, and an unlayered rule beats
+a layered one no matter how specific the layered one is — so overriding the theme means leaving the
+layer. To match the template's accent color to your theme, override the `--primary-color` token
+(see Step 7).
 
 ---
 
@@ -75,11 +89,22 @@ Copy the `resources/pf-template/` folder from the ZIP into your project's `src/m
 src/main/webapp/resources/
 └── pf-template/          ← NEW — copy this folder from the ZIP
     ├── css/
+    │   ├── layout-variables.css        ← design tokens (colors, spacing, radii)
+    │   ├── layout.css                  ← the layout itself
+    │   ├── layout-dark-primefaces.css  ← dark/dim re-skin of PrimeFaces widgets
+    │   └── login.css                   ← only needed if you use login.xhtml
     ├── js/
     └── images/
 ```
 
 This is a new JSF resource library (`library="pf-template"`) and will not conflict with any existing library in your project.
+
+> **`layout-dark-primefaces.css` depends on one attribute in your page.** Every selector in it is
+> prefixed with `#pft` — the id on the `<html>` element of `template.xhtml`. That is a specificity
+> lever, not decoration: PrimeFaces 16 scopes its own theme selectors several classes deep, and a
+> single id outranks any number of classes. If the id is missing, the file matches nothing: the
+> layout turns dark while every PrimeFaces widget stays light, and nothing reports an error.
+> See Step 4.
 
 ### 2c — Login page (optional)
 
@@ -134,6 +159,11 @@ Reference the template with a path relative to your `WEB-INF/` root:
 
 </ui:composition>
 ```
+
+> **Keep `id="pft"` on the `<html>` element.** If you use the shipped `template.xhtml` as-is you
+> already have it. If you merge the layout into a template of your own, carry that id across — the
+> dark-mode stylesheet is written against it (see Step 2b). Renaming it is fine, as long as you
+> change it in both places: `template.xhtml` and `layout-dark-primefaces.css`.
 
 ### Available template slots
 
